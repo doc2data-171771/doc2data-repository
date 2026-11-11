@@ -1,0 +1,15 @@
+{
+  "name": "doc2data-api",
+  "version": "1.0.0",
+  "description": "API do MVP de automação documental (doc2data): liga o front-end ao Supabase",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js",
+    "test": "node --test testes/api.test.js"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
