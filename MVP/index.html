@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opto Capital — Central de Documentos (Human-in-the-Loop MVP)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            opto: {
+              navy: '#0A192F',
+              slate: '#112240',
+              teal: '#0F766E',
+              emerald: '#10B981',
+              gold: '#D97706',
+              surface: '#F8FAFC',
+              border: '#E2E8F0'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F1F5F9;
+      color: #0F172A;
+    }
+    .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    .document-paper {
+      background: #FFFFFF;
+      box-shadow: 0 10px 30px -5px rgba(10, 25, 47, 0.12), 0 4px 10px -2px rgba(10, 25, 47, 0.05);
+      background-image: radial-gradient(#E2E8F0 0.75px, transparent 0.75px);
+      background-size: 16px 16px;
+    }
+
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+    }
+    .low-confidence-highlight {
+      animation: pulseBorder 2s infinite;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-teal-600 selection:text-white">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- MODAL: Contexto do Desafio & Arquitetura Human-in-the-Loop -->
+  <div id="briefModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden fade-in">
+      <div class="bg-[#0A192F] px-6 py-5 flex items-center justify-between text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-teal-500/20 border border-teal-400/30 flex items-center justify-center text-teal-300 font-display font-bold">
+            OC
+          </div>
+          <div>
+            <span class="text-[11px] uppercase tracking-widest text-teal-400 font-semibold">Escopo do MVP • Automação Assistida</span>
+            <h2 class="font-display font-bold text-lg">Central de Documentos Opto Capital</h2>
+          </div>
+        </div>
+        <button onclick="toggleModal('briefModal', false)" class="text-slate-400 hover:text-white p-1.5 rounded-lg transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <!-- Core do Desafio -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-rose-50/70 border border-rose-200">
+            <div class="flex items-center gap-2 text-rose-700 font-semibold text-sm mb-1.5">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>Problema Atual (100% Manual)</span>
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              Processo 100% manual e ineficiente. A equipe financeira precisa abrir arquivo por arquivo (PDFs, fotos de WhatsApp, anexos de e-mail), ler os dados e transcrever tudo manualmente para planilhas.
+            </p>
+          </div>
+          <div class="p-4 rounded-xl bg-teal-50/80 border border-teal-200">
+            <div class="flex items-center gap-2 text-teal-800 font-semibold text-sm mb-1.5">
+              <i class="fa-solid fa-bullseye"></i>
+              <span>Objetivo Principal</span>
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              Transformar documentos desestruturados em dados financeiros estruturados, auditáveis e prontos para alimentar planilhas ou ERPs — com <strong>0% de digitação repetitiva</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Fluxo 4 Etapas -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Arquitetura Human-in-the-Loop (4 Etapas)</h3>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex gap-3">
+              <span class="w-7 h-7 rounded-lg bg-[#0A192F] text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">01</span>
+              <div>
+                <h4 class="font-semibold text-sm text-slate-900">Entrada Multicanal</h4>
+                <p class="text-xs text-slate-600 mt-0.5">Recebimento centralizado de WhatsApp, E-mail e Upload em lote numa fila única.</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex gap-3">
+              <span class="w-7 h-7 rounded-lg bg-teal-700 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">02</span>
+              <div>
+                <h4 class="font-semibold text-sm text-slate-900">Processamento Inteligente (IA/OCR)</h4>
+                <p class="text-xs text-slate-600 mt-0.5">Classificação automática do tipo documental, extração de campos e cálculo de score de confiança.</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex gap-3">
+              <span class="w-7 h-7 rounded-lg bg-amber-600 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">03</span>
+              <div>
+                <h4 class="font-semibold text-sm text-slate-900">Validação Humana (Interface)</h4>
+                <p class="text-xs text-slate-600 mt-0.5">Conferência lado a lado (Individual ou em Lote) com destaque visual nos campos de baixa confiança.</p>
+              </div>
+            </div>
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex gap-3">
+              <span class="w-7 h-7 rounded-lg bg-emerald-700 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">04</span>
+              <div>
+                <h4 class="font-semibold text-sm text-slate-900">Saída Estruturada</h4>
+                <p class="text-xs text-slate-600 mt-0.5">Exportação imediata dos registros aprovados para Excel (.xlsx), CSV ou integração financeira.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <span class="text-xs text-slate-500">Protótipo Interativo • Todos os botões e campos são editáveis</span>
+        <button onclick="toggleModal('briefModal', false)" class="px-4 py-2 bg-[#0A192F] hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition">
+          Explorar Protótipo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Assistente IA Opto Copilot -->
+  <div id="aiDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="bg-[#0A192F] text-white px-5 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300">
+          <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-sm">Opto Copilot • Auditoria IA</h3>
+          <p class="text-[11px] text-slate-400">Análise contextual do Lote #09/11</p>
+        </div>
+      </div>
+      <button onclick="toggleDrawer(false)" class="text-slate-400 hover:text-white p-1.5">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div id="aiChatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-1.5 text-teal-700 font-semibold mb-1">
+          <i class="fa-solid fa-robot"></i>
+          <span>Diagnóstico Automático do Lote #09/11</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          Analisei os <strong>12 documentos</strong> recebidos hoje via WhatsApp, E-mail e Upload:
+        </p>
+        <ul class="mt-2 space-y-1 text-slate-700">
+          <li>• <strong>R$ 80.787,60</strong> em volume financeiro detectado.</li>
+          <li>• <strong>2 alertas de confiança:</strong> <code>NF_0412.pdf</code> (72% no valor total) e <code>boleto_agua.pdf</code> (58% no código de barras).</li>
+          <li>• <strong>1 arquivo ilegível:</strong> <code>scan_0034.jpg</code> precisa de classificação manual ou reenvio.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="p-3 bg-white border-t border-slate-200 space-y-2">
+      <div class="flex flex-wrap gap-1.5">
+        <button onclick="askCopilot('Quais campos têm baixa confiança?')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 hover:bg-teal-50 hover:text-teal-800 text-slate-700 border border-slate-200 transition">
+          Quais campos têm baixa confiança?
+        </button>
+        <button onclick="askCopilot('Qual o valor total somado das NFs?')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 hover:bg-teal-50 hover:text-teal-800 text-slate-700 border border-slate-200 transition">
+          Somar NFs e Boletos
+        </button>
+        <button onclick="askCopilot('Por que Human-in-the-loop?')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 hover:bg-teal-50 hover:text-teal-800 text-slate-700 border border-slate-200 transition">
+          Regra de governança
+        </button>
+      </div>
+      <form onsubmit="handleCopilotSubmit(event)" class="flex gap-2">
+        <input id="copilotInput" type="text" placeholder="Pergunte sobre os documentos do lote..." class="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-teal-600" />
+        <button type="submit" class="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-semibold transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       VIEW 0: TELA DE LOGIN OPTO CAPITAL
+       ===================================================================== -->
+  <section id="loginView" class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Left Brand & Value Proposition Panel -->
+    <div class="lg:w-7/12 bg-[#0A192F] text-white p-8 lg:p-14 flex flex-col justify-between relative overflow-hidden">
+      <!-- Subtle Architectural Grid Accent -->
+      <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(to right, #2DD4BF 1px, transparent 1px), linear-gradient(to bottom, #2DD4BF 1px, transparent 1px); background-size: 48px 48px;"></div>
+      <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Brand Header -->
+      <div class="relative z-10 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-700 flex items-center justify-center shadow-lg shadow-teal-950/50">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <span class="font-display font-extrabold text-xl tracking-tight text-white">OPTO <span class="text-teal-400">CAPITAL</span></span>
+            <p class="text-[11px] uppercase tracking-widest text-slate-400">Operações & Inteligência Documental</p>
+          </div>
+        </div>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-teal-300 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          MVP Human-in-the-Loop v1.0
+        </span>
+      </div>
+
+      <!-- Core Value Proposition -->
+      <div class="relative z-10 my-10 max-w-xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-teal-500/10 border border-teal-400/20 text-teal-300 text-xs font-semibold mb-4">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>Fim da digitação manual de documentos</span>
+        </div>
+        <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-[42px] leading-[1.15] tracking-tight text-white">
+          Central de Documentos Financeiros
+        </h1>
+        <p class="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
+          Transforme PDFs, fotos de WhatsApp e anexos de e-mail em dados estruturados prontos para planilhas e sistemas financeiros — combinando <strong>OCR + IA</strong> com <strong>validação humana assistida</strong>.
+        </p>
+
+        <!-- 4-Step Pipeline Preview Cards -->
+        <div class="mt-8 grid sm:grid-cols-2 gap-3">
+          <div class="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-md bg-teal-500/20 text-teal-300 font-mono text-xs font-bold flex items-center justify-center">1</span>
+              <span class="font-semibold text-sm text-white">Entrada Unificada</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">WhatsApp, e-mail e upload em lote numa única fila.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-md bg-teal-500/20 text-teal-300 font-mono text-xs font-bold flex items-center justify-center">2</span>
+              <span class="font-semibold text-sm text-white">Processamento IA/OCR</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">Classificação e extração automática de campos-chave.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-md bg-amber-500/20 text-amber-300 font-mono text-xs font-bold flex items-center justify-center">3</span>
+              <span class="font-semibold text-sm text-white">Validação Humana</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">Conferência lado a lado (individual ou em lote) com alertas.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold flex items-center justify-center">4</span>
+              <span class="font-semibold text-sm text-white">Saída Estruturada</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">Exportação direta em XLSX, CSV ou integração financeira.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Metrics -->
+      <div class="relative z-10 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+        <div class="flex items-center gap-6">
+          <div>
+            <span class="block font-mono font-bold text-white text-sm">-82%</span>
+            <span>Tempo operacional</span>
+          </div>
+          <div>
+            <span class="block font-mono font-bold text-teal-400 text-sm">100%</span>
+            <span>Auditoria humana</span>
+          </div>
+          <div>
+            <span class="block font-mono font-bold text-white text-sm">LGPD</span>
+            <span>Dados criptografados</span>
+          </div>
+        </div>
+        <button onclick="toggleModal('briefModal', true)" class="text-teal-300 hover:text-teal-200 underline underline-offset-4 font-medium">
+          Ver escopo do desafio
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Login Form Panel -->
+    <div class="lg:w-5/12 bg-white flex items-center justify-center p-8 sm:p-12">
+      <div class="w-full max-w-md space-y-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-700">Acesso Corporativo</span>
+          <h2 class="font-display font-bold text-2xl text-slate-900 mt-1">Entrar na plataforma</h2>
+          <p class="text-sm text-slate-500 mt-1">Use as credenciais da sua equipe Opto Capital para acessar os lotes.</p>
+        </div>
+
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">E-mail corporativo</label>
+            <div class="relative">
+              <i class="fa-regular fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+              <input type="email" required value="analista.financeiro@optocapital.com.br"
+                class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 transition" />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-700">Senha</label>
+              <button type="button" onclick="showToast('Link de redefinição enviado para seu e-mail corporativo.', 'info')" class="text-xs font-medium text-teal-700 hover:text-teal-800">
+                Esqueci a senha
+              </button>
+            </div>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+              <input type="password" required value="••••••••••••"
+                class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 transition" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" checked class="rounded border-slate-300 text-teal-700 focus:ring-teal-600" />
+              <span>Manter conectado neste dispositivo</span>
+            </label>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3 px-4 bg-[#0A192F] hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-lg shadow-slate-900/15 flex items-center justify-center gap-2 transition cursor-pointer">
+            <span>Acessar Central de Documentos</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-3">
+          <i class="fa-solid fa-circle-info text-teal-700 mt-0.5"></i>
+          <div>
+            <p class="font-semibold text-slate-800">Sem acesso ainda?</p>
+            <p class="mt-0.5">Solicite a liberação de perfil ao administrador de Operações Financeiras da Opto Capital.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       APP SHELL: WORKSPACE PRINCIPAL (ETAPAS 1 A 4)
+       ===================================================================== -->
+  <div id="appShell" class="hidden min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-[#0A192F] text-white border-b border-slate-800 sticky top-0 z-30">
+      <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <!-- Brand & Batch Selector -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-teal-700 flex items-center justify-center font-display font-bold text-sm text-white">
+              OC
+            </div>
+            <div class="leading-tight">
+              <span class="font-display font-bold text-sm tracking-tight block">OPTO <span class="text-teal-400">CAPITAL</span></span>
+              <span class="text-[10px] text-slate-400 uppercase tracking-wider">Central de Documentos</span>
+            </div>
+          </div>
+
+          <div class="h-6 w-px bg-slate-700 hidden sm:block"></div>
+
+          <!-- Active Batch Pill -->
+          <div class="hidden md:flex items-center gap-2 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-slate-400">Lote ativo:</span>
+            <input id="batchNameInput" type="text" value="lote_09_11_clientes" class="bg-transparent font-mono font-semibold text-teal-300 w-36 focus:outline-none border-b border-transparent focus:border-teal-400" />
+            <span class="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px]" id="headerTotalBadge">12 docs</span>
+          </div>
+        </div>
+
+        <!-- Global Actions -->
+        <div class="flex items-center gap-2.5">
+          <button onclick="toggleModal('briefModal', true)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
+            <i class="fa-solid fa-circle-question text-teal-400"></i>
+            <span class="hidden sm:inline">Desafio & Fluxo</span>
+          </button>
+
+          <button onclick="toggleDrawer(true)" class="px-3 py-1.5 rounded-lg bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 text-xs font-semibold flex items-center gap-1.5 border border-teal-500/30 transition">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Opto Copilot</span>
+          </button>
+
+          <div class="h-6 w-px bg-slate-700 mx-1"></div>
+
+          <button onclick="logout()" title="Sair para tela de login" class="flex items-center gap-2 text-xs text-slate-300 hover:text-white px-2 py-1.5 rounded-lg hover:bg-slate-800 transition">
+            <div class="w-7 h-7 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-[11px]">AF</div>
+            <span class="hidden lg:inline">Ana Ferreira</span>
+            <i class="fa-solid fa-right-from-bracket text-slate-400 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4-Stage Interactive Stepper -->
+      <div class="bg-[#112240] border-t border-slate-800/80">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-2.5">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2" id="stepperNav">
+            <!-- Step 1 -->
+            <button onclick="goToStep(1)" id="stepBtn-1" class="step-tab text-left px-3.5 py-2 rounded-xl border transition flex items-center gap-3">
+              <span class="step-num w-7 h-7 rounded-lg font-mono text-xs font-bold flex items-center justify-center shrink-0">1</span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold truncate">Entrada</div>
+                <div class="text-[11px] opacity-75 truncate">WhatsApp, E-mail e Upload</div>
+              </div>
+            </button>
+
+            <!-- Step 2 -->
+            <button onclick="goToStep(2)" id="stepBtn-2" class="step-tab text-left px-3.5 py-2 rounded-xl border transition flex items-center gap-3">
+              <span class="step-num w-7 h-7 rounded-lg font-mono text-xs font-bold flex items-center justify-center shrink-0">2</span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold truncate">Processamento IA</div>
+                <div class="text-[11px] opacity-75 truncate">OCR e Extração Automática</div>
+              </div>
+            </button>
+
+            <!-- Step 3 -->
+            <button onclick="goToStep(3)" id="stepBtn-3" class="step-tab text-left px-3.5 py-2 rounded-xl border transition flex items-center gap-3">
+              <span class="step-num w-7 h-7 rounded-lg font-mono text-xs font-bold flex items-center justify-center shrink-0">3</span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold truncate">Validação Humana</div>
+                <div class="text-[11px] opacity-75 truncate">Individual ou em Lote</div>
+              </div>
+            </button>
+
+            <!-- Step 4 -->
+            <button onclick="goToStep(4)" id="stepBtn-4" class="step-tab text-left px-3.5 py-2 rounded-xl border transition flex items-center gap-3">
+              <span class="step-num w-7 h-7 rounded-lg font-mono text-xs font-bold flex items-center justify-center shrink-0">4</span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold truncate">Saída</div>
+                <div class="text-[11px] opacity-75 truncate">Planilha & Base Financeira</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Workspace -->
+    <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6">
+
+      <!-- =================================================================
+           ETAPA 1: ENTRADA (MULTICANAL)
+           ================================================================= -->
+      <section id="stepView-1" class="fade-in space-y-6">
+        <!-- Context Header -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold">Etapa 1 de 4</span>
+              <span class="text-xs text-slate-500">Ingestão Centralizada de Documentos Desestruturados</span>
+            </div>
+            <h1 class="font-display font-bold text-xl text-slate-900 mt-1">Entrada de Documentos na Fila Única</h1>
+            <p class="text-sm text-slate-600 mt-0.5">
+              Arquivos recebidos por WhatsApp, E-mail ou Upload manual são unificados automaticamente antes da leitura por IA.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="simulateIncomingDoc('WhatsApp')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-2 transition">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+              <span>+ Simular WhatsApp</span>
+            </button>
+            <button onclick="simulateIncomingDoc('E-mail')" class="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-semibold flex items-center gap-2 transition">
+              <i class="fa-regular fa-envelope text-sm"></i>
+              <span>+ Simular E-mail</span>
+            </button>
+            <button onclick="goToStep(2)" class="px-5 py-2.5 rounded-xl bg-[#0A192F] hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 shadow-md transition">
+              <span>Enviar lote para Processamento IA</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Strip -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Total Recebido no Lote</span>
+              <i class="fa-solid fa-folder-open text-slate-400"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="font-display font-extrabold text-2xl text-slate-900" id="kpiTotalDocs">12</span>
+              <span class="text-xs text-emerald-600 font-medium">arquivos</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Via WhatsApp Business</span>
+              <i class="fa-brands fa-whatsapp text-emerald-600"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="font-display font-extrabold text-2xl text-slate-900" id="kpiWhatsapp">5</span>
+              <span class="text-xs text-slate-500">conectado • webhook ativo</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Via Caixa de E-mail</span>
+              <i class="fa-regular fa-envelope text-sky-600"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="font-display font-extrabold text-2xl text-slate-900" id="kpiEmail">4</span>
+              <span class="text-xs text-slate-500">docs@optocapital.com.br</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Upload Manual / Erros</span>
+              <i class="fa-solid fa-cloud-arrow-up text-teal-600"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="font-display font-extrabold text-2xl text-slate-900" id="kpiUpload">3</span>
+              <span class="text-xs text-emerald-600 font-semibold">• 0 erros de envio</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Grid: Channels & Upload + Unified Queue -->
+        <div class="grid lg:grid-cols-12 gap-6">
+          <!-- Left Column: Channels + Dropzone -->
+          <div class="lg:col-span-5 space-y-5">
+            <!-- Channels Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3.5">
+              <h2 class="font-display font-bold text-sm text-slate-900 flex items-center justify-between">
+                <span>Canais Conectados</span>
+                <span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Sincronização em tempo real</span>
+              </h2>
+
+              <div class="space-y-2.5">
+                <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-base">
+                      <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-slate-900">WhatsApp Corporativo</div>
+                      <div class="text-[11px] text-slate-500">+55 (11) 99482-1040 • Fotos e PDFs</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado
+                  </span>
+                </div>
+
+                <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-base">
+                      <i class="fa-regular fa-envelope"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-slate-900">E-mail de Recebimento</div>
+                      <div class="text-[11px] text-slate-500">financeiro.docs@optocapital.com.br</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Drag & Drop Upload -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <h2 class="font-display font-bold text-sm text-slate-900 mb-3">Upload Manual em Lote</h2>
+              <label for="fileUploadInput" class="border-2 border-dashed border-slate-300 hover:border-teal-600 bg-slate-50/60 hover:bg-teal-50/30 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition group">
+                <div class="w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-teal-700 group-hover:scale-105 transition mb-3">
+                  <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-800">Arraste seus arquivos aqui ou clique para selecionar</p>
+                <p class="text-[11px] text-slate-500 mt-1">Aceita arquivo único ou lote • PDF, JPG, PNG (até 25MB/arquivo)</p>
+                <input id="fileUploadInput" type="file" multiple class="hidden" onchange="handleManualUpload(event)" />
+              </label>
+
+              <div class="mt-4 p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-2.5 text-xs text-amber-900">
+                <i class="fa-solid fa-shield-halved text-amber-600 mt-0.5"></i>
+                <p class="leading-relaxed">
+                  <strong>Governança MVP:</strong> Sem automação cega. Toda leitura da IA passa pela conferência humana na Etapa 3 antes de exportar.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Unified Queue List -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="font-display font-bold text-sm text-slate-900">Fila Única do Lote (<span id="queueCountLabel">12</span> documentos)</h2>
+                <p class="text-xs text-slate-500">Todos os canais consolidados e aguardando extração OCR/IA</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="channelFilterStep1" onchange="renderStep1Queue()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:border-teal-600">
+                  <option value="ALL">Todos os canais</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="E-mail">E-mail</option>
+                  <option value="Upload">Upload manual</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="divide-y divide-slate-100 max-h-[430px] overflow-y-auto" id="step1QueueList">
+              <!-- Populated by JS -->
+            </div>
+
+            <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span class="text-xs text-slate-500">Pronto para iniciar OCR e classificação automática</span>
+              <button onclick="goToStep(2)" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded-lg flex items-center gap-2 transition">
+                <span>Processar com IA</span>
+                <i class="fa-solid fa-bolt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           ETAPA 2: PROCESSAMENTO INTELIGENTE (IA / OCR)
+           ================================================================= -->
+      <section id="stepView-2" class="hidden fade-in space-y-6">
+        <!-- Context Header -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold">Etapa 2 de 4</span>
+              <span class="text-xs text-slate-500">Motor OCR + Classificação Semântica Opto AI</span>
+            </div>
+            <h1 class="font-display font-bold text-xl text-slate-900 mt-1">Processamento Inteligente & Extração de Dados</h1>
+            <p class="text-sm text-slate-600 mt-0.5">
+              A IA identifica automaticamente o tipo documental (NF, Boleto, Contrato, Extrato, CNH) e estrutura os campos financeiros.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="completeAllProcessing()" id="btnFinishOcr" class="px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-semibold flex items-center gap-2 transition">
+              <i class="fa-solid fa-forward-fast"></i>
+              <span>Concluir leitura dos 3 em andamento</span>
+            </button>
+            <button onclick="goToStep(3)" class="px-5 py-2.5 rounded-xl bg-[#0A192F] hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 shadow-md transition">
+              <span>Avançar para Validação Humana</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress & Filter Bar -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-2" id="step2FilterTabs">
+            <button onclick="setStep2Filter('ALL')" class="s2-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0A192F] text-white">Todos (<span id="s2CountAll">12</span>)</button>
+            <button onclick="setStep2Filter('READY')" class="s2-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Extraídos (<span id="s2CountReady">7</span>)</button>
+            <button onclick="setStep2Filter('LOW_CONF')" class="s2-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100">Baixa Confiança (<span id="s2CountLow">2</span>)</button>
+            <button onclick="setStep2Filter('READING')" class="s2-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100">Lendo OCR (<span id="s2CountRead">2</span>)</button>
+            <button onclick="setStep2Filter('UNKNOWN')" class="s2-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100">Não Reconhecido (<span id="s2CountUnk">1</span>)</button>
+          </div>
+
+          <div class="flex items-center gap-3 min-w-[240px]">
+            <div class="flex-1">
+              <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                <span id="ocrProgressLabel">9 de 12 documentos lidos</span>
+                <span id="ocrProgressPct" class="font-mono text-teal-700">75%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="ocrProgressBar" class="h-full bg-teal-600 rounded-full transition-all duration-500" style="width: 75%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Grid: Cards Grid + Live Extraction Inspector -->
+        <div class="grid lg:grid-cols-12 gap-6">
+          <!-- Cards Grid (8 cols) -->
+          <div class="lg:col-span-8 grid sm:grid-cols-2 xl:grid-cols-3 gap-3.5 content-start" id="step2CardsGrid">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Right Inspector Panel (4 cols) -->
+          <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between h-fit sticky top-36" id="step2Inspector">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           ETAPA 3: VALIDAÇÃO HUMANA (INDIVIDUAL & EM LOTE)
+           ================================================================= -->
+      <section id="stepView-3" class="hidden fade-in space-y-5">
+        <!-- Header + Mode Switcher -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">Etapa 3 de 4 • Human-in-the-Loop</span>
+              <span class="text-xs text-slate-500">Conferência Assistida Lado a Lado</span>
+            </div>
+            <h1 class="font-display font-bold text-xl text-slate-900 mt-1">Validação Humana dos Dados Extraídos</h1>
+            <p class="text-sm text-slate-600 mt-0.5">
+              Confira os campos extraídos lado a lado com o documento original. Células em amarelo indicam baixa confiança da IA.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Segmented Switch: Individual vs Lote -->
+            <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+              <button onclick="setValidationMode('individual')" id="modeBtn-individual" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Conferência Individual</span>
+              </button>
+              <button onclick="setValidationMode('batch')" id="modeBtn-batch" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-table-list"></i>
+                <span>Conferência em Lote</span>
+              </button>
+            </div>
+
+            <button onclick="goToStep(4)" class="px-5 py-2.5 rounded-xl bg-[#0A192F] hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 shadow-md transition">
+              <span>Ir para Saída (<span id="approvedCountBtn">6</span> aprovados)</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- MODE A: INDIVIDUAL SIDE-BY-SIDE VIEW -->
+        <div id="validationIndividualView" class="grid lg:grid-cols-12 gap-5">
+          <!-- Left Queue Sidebar (3 cols) -->
+          <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col max-h-[640px]">
+            <div class="p-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">Fila de Revisão</span>
+              <span class="text-[11px] font-mono text-slate-500" id="indivQueueProgress">6/12 aprovados</span>
+            </div>
+            <div class="divide-y divide-slate-100 overflow-y-auto flex-1" id="indivQueueList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Center Document Visual Viewer (5 cols) -->
+          <div class="lg:col-span-5 bg-slate-200/70 rounded-2xl border border-slate-300 p-4 flex flex-col justify-between min-h-[600px]">
+            <div class="flex items-center justify-between bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm mb-3">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="fa-regular fa-file-pdf text-rose-600"></i>
+                <span class="text-xs font-bold text-slate-800 truncate" id="viewerDocFilename">NF_0412.pdf</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium" id="viewerDocSource">E-mail</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-slate-500">
+                <button onclick="adjustZoom(-10)" class="p-1 hover:text-slate-900" title="Diminuir zoom"><i class="fa-solid fa-magnifying-glass-minus text-xs"></i></button>
+                <span class="text-[11px] font-mono" id="zoomLabel">100%</span>
+                <button onclick="adjustZoom(10)" class="p-1 hover:text-slate-900" title="Aumentar zoom"><i class="fa-solid fa-magnifying-glass-plus text-xs"></i></button>
+              </div>
+            </div>
+
+            <!-- Simulated Document Canvas with Bounding Box Highlights -->
+            <div class="flex-1 flex items-center justify-center overflow-auto p-2">
+              <div id="documentPreviewCanvas" class="document-paper w-full max-w-[420px] rounded-lg border border-slate-300 p-6 transition-transform origin-center">
+                <!-- Populated dynamically per selected document -->
+              </div>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between text-[11px] text-slate-600 bg-white/80 px-3 py-2 rounded-lg border border-slate-200">
+              <span><i class="fa-solid fa-highlighter text-amber-500 mr-1"></i> Área destacada corresponde ao campo focado</span>
+              <div class="flex gap-2">
+                <button onclick="navigateDoc(-1)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                <button onclick="navigateDoc(1)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700">Próximo <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Editable Extracted Fields Form (4 cols) -->
+          <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <div>
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-teal-700">Campos Extraídos</span>
+                  <h3 class="font-display font-bold text-base text-slate-900" id="formDocType">Nota Fiscal de Serviço</h3>
+                </div>
+                <span id="formStatusBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Conferindo</span>
+              </div>
+
+              <!-- Low confidence alert banner -->
+              <div id="lowConfAlertBox" class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-start gap-2.5 text-xs text-amber-900">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                <div>
+                  <p class="font-bold">Atenção: Campo com baixa confiança (72%)</p>
+                  <p class="text-[11px] mt-0.5">Confira o campo destacado em amarelo com o documento ao lado antes de aprovar.</p>
+                </div>
+              </div>
+
+              <!-- Dynamic Form Fields -->
+              <div class="mt-4 space-y-3" id="indivFieldsForm">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-4 mt-5 border-t border-slate-200 space-y-2.5">
+              <div class="grid grid-cols-2 gap-2.5">
+                <button onclick="rejectCurrentDoc()" class="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                  <i class="fa-solid fa-xmark"></i>
+                  <span>Rejeitar Doc</span>
+                </button>
+                <button onclick="approveCurrentDoc()" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                  <i class="fa-solid fa-check"></i>
+                  <span>Aprovar & Próximo</span>
+                </button>
+              </div>
+              <button onclick="saveCurrentEdits()" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                Salvar alterações sem aprovar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE B: BATCH SPREADSHEET VALIDATION VIEW -->
+        <div id="validationBatchView" class="hidden grid lg:grid-cols-12 gap-5">
+          <!-- Spreadsheet Table Area (8 cols) -->
+          <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <!-- Batch Toolbar -->
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button onclick="setBatchFilter('ALL')" class="batch-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#0A192F] text-white">Todos (12)</button>
+                <button onclick="setBatchFilter('LOW')" class="batch-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-900">Só baixa confiança</button>
+                <button onclick="setBatchFilter('Nota fiscal')" class="batch-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700">Notas fiscais</button>
+                <button onclick="setBatchFilter('Boleto')" class="batch-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700">Boletos</button>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-600"><span id="selectedRowsCount">0</span> marcados</span>
+                <button onclick="batchApproveSelected()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                  <i class="fa-solid fa-check-double mr-1"></i> Aprovar marcados
+                </button>
+                <button onclick="batchRejectSelected()" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition">
+                  Rejeitar
+                </button>
+              </div>
+            </div>
+
+            <!-- Interactive Editable Spreadsheet Grid -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-semibold">
+                    <th class="p-3 w-9"><input type="checkbox" id="selectAllBatch" onchange="toggleSelectAllBatch(this)" class="rounded border-slate-300" /></th>
+                    <th class="p-3">Arquivo</th>
+                    <th class="p-3">Tipo</th>
+                    <th class="p-3">Emissor / Razão Social</th>
+                    <th class="p-3">CNPJ / CPF</th>
+                    <th class="p-3">Valor Total</th>
+                    <th class="p-3">Conf.</th>
+                    <th class="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="batchTableBody" class="divide-y divide-slate-100">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+              <span><i class="fa-solid fa-pen-to-square text-teal-700 mr-1"></i> Clique em qualquer célula para editar diretamente. Células amarelas indicam baixa confiança.</span>
+              <span>Clique na linha para inspecionar o documento à direita →</span>
+            </div>
+          </div>
+
+          <!-- Right Synchronized Document Preview (4 cols) -->
+          <div class="lg:col-span-4 bg-slate-200/70 rounded-2xl border border-slate-300 p-4 flex flex-col justify-between">
+            <div class="bg-white px-3.5 py-2 rounded-xl border border-slate-200 flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-slate-800 truncate" id="batchPreviewTitle">NF_0412.pdf</span>
+              <span class="text-[11px] font-mono text-teal-700 font-semibold" id="batchPreviewConf">Confiança: 72%</span>
+            </div>
+
+            <div id="batchDocumentPreview" class="document-paper rounded-lg border border-slate-300 p-5 flex-1">
+              <!-- Populated by JS -->
+            </div>
+
+            <div class="mt-3 p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600">
+              <p class="font-semibold text-slate-800">Conferência Rápida em Lote</p>
+              <p class="text-[11px] mt-0.5">Ao clicar numa linha da tabela, o documento correspondente abre aqui com o campo de menor confiança destacado.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           ETAPA 4: SAÍDA & EXPORTAÇÃO ESTRUTURADA
+           ================================================================= -->
+      <section id="stepView-4" class="hidden fade-in space-y-6">
+        <!-- Context Header -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">Etapa 4 de 4 • Dados Estruturados</span>
+              <span class="text-xs text-slate-500">Pronto para Planilha Financeira ou ERP</span>
+            </div>
+            <h1 class="font-display font-bold text-xl text-slate-900 mt-1">Saída & Exportação de Dados Validados</h1>
+            <p class="text-sm text-slate-600 mt-0.5">
+              Apenas os documentos aprovados na validação humana compõem a base estruturada final. Pendentes ficam retidos por segurança.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="goToStep(3)" class="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-2 transition">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span>Voltar e conferir pendentes (<span id="pendingCountBackBtn">5</span>)</span>
+            </button>
+            <button onclick="exportSpreadsheet('xlsx')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition">
+              <i class="fa-solid fa-file-excel text-sm"></i>
+              <span>Exportar Planilha (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
+            <span class="text-xs font-semibold text-emerald-800">Aprovados para Saída</span>
+            <div class="mt-1.5 flex items-baseline justify-between">
+              <span class="font-display font-extrabold text-3xl text-emerald-700" id="outApprovedCount">6</span>
+              <span class="text-xs text-emerald-700 font-medium">100% validados</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/30 shadow-sm">
+            <span class="text-xs font-semibold text-amber-800">Pendentes de Revisão</span>
+            <div class="mt-1.5 flex items-baseline justify-between">
+              <span class="font-display font-extrabold text-3xl text-amber-600" id="outPendingCount">5</span>
+              <span class="text-xs text-amber-700">retidos na fila</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-rose-200 bg-rose-50/30 shadow-sm">
+            <span class="text-xs font-semibold text-rose-800">Rejeitados</span>
+            <div class="mt-1.5 flex items-baseline justify-between">
+              <span class="font-display font-extrabold text-3xl text-rose-600" id="outRejectedCount">1</span>
+              <span class="text-xs text-rose-700">descartados</span>
+            </div>
+          </div>
+
+          <div class="bg-[#0A192F] text-white p-4 rounded-xl shadow-sm">
+            <span class="text-xs font-semibold text-teal-300">Volume Financeiro Validado</span>
+            <div class="mt-1.5 flex items-baseline justify-between">
+              <span class="font-mono font-bold text-xl text-white" id="outTotalVolume">R$ 78.983,00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Grid: Destinations + Structured Table Preview -->
+        <div class="grid lg:grid-cols-12 gap-6">
+          <!-- Left Destinations (4 cols) -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+              <h2 class="font-display font-bold text-sm text-slate-900">Destino dos Dados</h2>
+
+              <!-- Destination 1: XLSX -->
+              <div onclick="exportSpreadsheet('xlsx')" class="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/40 cursor-pointer hover:bg-teal-50 transition">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                      <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-slate-900">Planilha Excel (.xlsx)</div>
+                      <div class="text-[11px] text-slate-600">Layout estruturado padrão Opto Capital</div>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-download text-teal-700"></i>
+                </div>
+              </div>
+
+              <!-- Destination 2: CSV -->
+              <div onclick="exportSpreadsheet('csv')" class="p-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white cursor-pointer transition">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                      <i class="fa-solid fa-file-csv"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-slate-900">Arquivo CSV (UTF-8)</div>
+                      <div class="text-[11px] text-slate-500">Para importação em BI ou sistemas legados</div>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-download text-slate-400"></i>
+                </div>
+              </div>
+
+              <!-- Destination 3: API / ERP -->
+              <div onclick="showToast('Integração Webhook/API configurável na fase 2 do roadmap.', 'info')" class="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 cursor-pointer hover:bg-slate-100 transition">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center">
+                      <i class="fa-solid fa-plug"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-slate-700">Sistema Financeiro / ERP</div>
+                      <div class="text-[11px] text-slate-500">Conector API • Disponível pós-MVP</div>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-600">Em breve</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm text-xs text-slate-600 space-y-2">
+              <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                <i class="fa-solid fa-lock text-teal-700"></i>
+                <span>Trilha de Auditoria Garantida</span>
+              </div>
+              <p class="leading-relaxed">
+                Cada linha exportada registra automaticamente o <strong>canal de origem</strong>, o <strong>score de confiança OCR</strong> e o <strong>analista responsável pela aprovação</strong>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Right Structured Table Preview (8 cols) -->
+          <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 class="font-display font-bold text-sm text-slate-900">Prévia da Base Estruturada (<span id="previewRowCount">6</span> linhas prontas)</h2>
+                <p class="text-xs text-slate-500">Colunas normalizadas prontas para consumo financeiro</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-mono text-[11px] font-semibold">SCHEMA_OPTO_FIN_V1</span>
+            </div>
+
+            <div class="overflow-x-auto flex-1">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                    <th class="p-3">#</th>
+                    <th class="p-3">Arquivo Origem</th>
+                    <th class="p-3">Canal</th>
+                    <th class="p-3">Tipo Doc.</th>
+                    <th class="p-3">Emissor / Titular</th>
+                    <th class="p-3">CNPJ / CPF</th>
+                    <th class="p-3">Data</th>
+                    <th class="p-3 text-right">Valor Estruturado</th>
+                  </tr>
+                </thead>
+                <tbody id="outputPreviewBody" class="divide-y divide-slate-100 font-mono text-[11px]">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =====================================================================
+       JAVASCRIPT: STATE MANAGEMENT & INTERACTIVITY
+       ===================================================================== -->
+  <script>
+    // Initial Realistic Dataset matching Opto Capital context
+    let documents = [
+      {
+        id: 'doc-1',
+        filename: 'NF_0412.pdf',
+        channel: 'E-mail',
+        ocrStatus: 'READY', // READY, READING, UNKNOWN
+        validationStatus: 'pending', // approved, pending, rejected
+        type: 'Nota fiscal',
+        typeConfidence: 97,
+        pages: 1,
+        issuer: 'Distribuidora Alfa Ltda',
+        taxId: '12.345.678/0001-90',
+        docNumber: '0412',
+        date: '03/11/2026',
+        amount: 'R$ 4.380,00',
+        numericAmount: 4380.00,
+        recipient: 'Beta Comércio Ltda',
+        fieldConfidences: { issuer: 98, taxId: 97, docNumber: 99, date: 95, amount: 72, recipient: 91 },
+        lowConfField: 'amount',
+        selectedBatch: true
+      },
+      {
+        id: 'doc-2',
+        filename: 'boleto_energia.pdf',
+        channel: 'WhatsApp',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'Boleto',
+        typeConfidence: 96,
+        pages: 1,
+        issuer: 'Enel Distribuição SP',
+        taxId: '61.695.227/0001-93',
+        docNumber: '84670000009-1',
+        date: '12/11/2026',
+        amount: 'R$ 912,40',
+        numericAmount: 912.40,
+        recipient: 'Opto Capital Gestão',
+        fieldConfidences: { issuer: 99, taxId: 96, docNumber: 94, date: 97, amount: 95, recipient: 92 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-3',
+        filename: 'contrato_social.pdf',
+        channel: 'Upload',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'Contrato social',
+        typeConfidence: 94,
+        pages: 8,
+        issuer: 'Beta Comércio Ltda',
+        taxId: '34.987.112/0001-45',
+        docNumber: 'JUCESP-9921',
+        date: '18/08/2026',
+        amount: 'R$ 50.000,00',
+        numericAmount: 50000.00,
+        recipient: 'Capital Social Integralizado',
+        fieldConfidences: { issuer: 95, taxId: 93, docNumber: 90, date: 92, amount: 91, recipient: 89 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-4',
+        filename: 'cnh_socio.jpg',
+        channel: 'WhatsApp',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'RG / CNH',
+        typeConfidence: 95,
+        pages: 1,
+        issuer: 'Carlos Eduardo Mendes',
+        taxId: '384.910.228-09',
+        docNumber: '0482910482',
+        date: '14/05/2031',
+        amount: 'R$ 0,00',
+        numericAmount: 0,
+        recipient: 'Sócio Administrador',
+        fieldConfidences: { issuer: 97, taxId: 96, docNumber: 94, date: 91, amount: 100, recipient: 93 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-5',
+        filename: 'NF_0413.pdf',
+        channel: 'WhatsApp',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'Nota fiscal',
+        typeConfidence: 98,
+        pages: 1,
+        issuer: 'Distribuidora Alfa Ltda',
+        taxId: '12.345.678/0001-90',
+        docNumber: '0413',
+        date: '04/11/2026',
+        amount: 'R$ 1.915,60',
+        numericAmount: 1915.60,
+        recipient: 'Beta Comércio Ltda',
+        fieldConfidences: { issuer: 98, taxId: 98, docNumber: 99, date: 96, amount: 96, recipient: 94 },
+        lowConfField: null,
+        selectedBatch: true
+      },
+      {
+        id: 'doc-6',
+        filename: 'boleto_agua.pdf',
+        channel: 'Upload',
+        ocrStatus: 'READY',
+        validationStatus: 'pending',
+        type: 'Boleto',
+        typeConfidence: 88,
+        pages: 1,
+        issuer: 'Sabesp Saneamento',
+        taxId: '43.776.517/0001-80',
+        docNumber: '82640000001-4',
+        date: '15/11/2026',
+        amount: 'R$ 148,90',
+        numericAmount: 148.90,
+        recipient: 'Beta Comércio Ltda',
+        fieldConfidences: { issuer: 92, taxId: 90, docNumber: 58, date: 89, amount: 64, recipient: 87 },
+        lowConfField: 'amount',
+        selectedBatch: true
+      },
+      {
+        id: 'doc-7',
+        filename: 'extrato_out.pdf',
+        channel: 'E-mail',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'Extrato bancário',
+        typeConfidence: 92,
+        pages: 4,
+        issuer: 'Banco Itaú Unibanco',
+        taxId: '60.701.190/0001-04',
+        docNumber: 'AG 0412 CC 88412-0',
+        date: '31/10/2026',
+        amount: 'R$ 23.655,00',
+        numericAmount: 23655.00,
+        recipient: 'Beta Comércio Ltda',
+        fieldConfidences: { issuer: 99, taxId: 95, docNumber: 92, date: 94, amount: 86, recipient: 93 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-8',
+        filename: 'comprov_end.pdf',
+        channel: 'E-mail',
+        ocrStatus: 'READY',
+        validationStatus: 'approved',
+        type: 'Comprov. residência',
+        typeConfidence: 91,
+        pages: 1,
+        issuer: 'Vivo Fibra Telecom',
+        taxId: '02.558.157/0001-62',
+        docNumber: 'FAT-99281',
+        date: '01/11/2026',
+        amount: 'R$ 219,90',
+        numericAmount: 219.90,
+        recipient: 'Carlos Eduardo Mendes',
+        fieldConfidences: { issuer: 95, taxId: 91, docNumber: 88, date: 94, amount: 90, recipient: 92 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-9',
+        filename: 'NF_servicos_ti.pdf',
+        channel: 'E-mail',
+        ocrStatus: 'READING',
+        validationStatus: 'pending',
+        type: 'Nota fiscal',
+        typeConfidence: 93,
+        pages: 1,
+        issuer: 'CloudOps Tecnologia SA',
+        taxId: '28.114.902/0001-11',
+        docNumber: '1109',
+        date: '08/11/2026',
+        amount: 'R$ 3.200,00',
+        numericAmount: 3200.00,
+        recipient: 'Opto Capital Gestão',
+        fieldConfidences: { issuer: 95, taxId: 94, docNumber: 96, date: 93, amount: 92, recipient: 91 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-10',
+        filename: 'recibo_aluguel_nov.jpg',
+        channel: 'WhatsApp',
+        ocrStatus: 'READING',
+        validationStatus: 'pending',
+        type: 'Recibo',
+        typeConfidence: 85,
+        pages: 1,
+        issuer: 'Imobiliária Paulista',
+        taxId: '55.120.884/0001-30',
+        docNumber: 'REC-2026-11',
+        date: '05/11/2026',
+        amount: 'R$ 6.800,00',
+        numericAmount: 6800.00,
+        recipient: 'Beta Comércio Ltda',
+        fieldConfidences: { issuer: 89, taxId: 86, docNumber: 84, date: 90, amount: 88, recipient: 85 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-11',
+        filename: 'boleto_condominio.pdf',
+        channel: 'Upload',
+        ocrStatus: 'READY',
+        validationStatus: 'pending',
+        type: 'Boleto',
+        typeConfidence: 94,
+        pages: 1,
+        issuer: 'Condomínio Ed. Faria Lima',
+        taxId: '19.442.008/0001-77',
+        docNumber: '00190.00009 01244.8812',
+        date: '10/11/2026',
+        amount: 'R$ 1.850,00',
+        numericAmount: 1850.00,
+        recipient: 'Opto Capital Gestão',
+        fieldConfidences: { issuer: 95, taxId: 94, docNumber: 92, date: 96, amount: 94, recipient: 91 },
+        lowConfField: null,
+        selectedBatch: false
+      },
+      {
+        id: 'doc-12',
+        filename: 'scan_0034.jpg',
+        channel: 'WhatsApp',
+        ocrStatus: 'UNKNOWN',
+        validationStatus: 'rejected',
+        type: 'Não identificado',
+        typeConfidence: 34,
+        pages: 1,
+        issuer: 'Imagem ilegível / desfocada',
+        taxId: '—',
+        docNumber: '—',
+        date: '09/11/2026',
+        amount: 'R$ 0,00',
+        numericAmount: 0,
+        recipient: '—',
+        fieldConfidences: { issuer: 30, taxId: 20, docNumber: 25, date: 40, amount: 15, recipient: 20 },
+        lowConfField: 'amount',
+        selectedBatch: false
+      }
+    ];
+
+    let currentStep = 1;
+    let step2Filter = 'ALL';
+    let selectedDocId = 'doc-1';
+    let validationMode = 'individual'; // 'individual' | 'batch'
+    let batchFilter = 'ALL';
+    let viewerZoom = 100;
+
+    // Navigation & Login
+    function handleLogin(e) {
+      e.preventDefault();
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+      goToStep(1);
+      showToast('Bem-vinda, Ana! Lote #09/11 carregado com 12 documentos.', 'success');
+    }
+
+    function logout() {
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+      for (let i = 1; i <= 4; i++) {
+        const view = document.getElementById(`stepView-${i}`);
+        const btn = document.getElementById(`stepBtn-${i}`);
+        if (i === step) {
+          view.classList.remove('hidden');
+          btn.className = 'step-tab text-left px-3.5 py-2 rounded-xl border border-teal-400/50 bg-teal-500/15 text-white transition flex items-center gap-3 shadow-sm';
+          btn.querySelector('.step-num').className = 'step-num w-7 h-7 rounded-lg bg-teal-400 text-[#0A192F] font-mono text-xs font-extrabold flex items-center justify-center shrink-0';
+        } else {
+          view.classList.add('hidden');
+          const isCompleted = i < step;
+          btn.className = 'step-tab text-left px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-800/40 text-slate-300 hover:bg-slate-800 transition flex items-center gap-3';
+          btn.querySelector('.step-num').className = isCompleted
+            ? 'step-num w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-xs font-bold flex items-center justify-center shrink-0'
+            : 'step-num w-7 h-7 rounded-lg bg-slate-700 text-slate-300 font-mono text-xs font-bold flex items-center justify-center shrink-0';
+        }
+      }
+
+      updateGlobalCounters();
+      if (step === 1) renderStep1Queue();
+      if (step === 2) renderStep2();
+      if (step === 3) renderStep3();
+      if (step === 4) renderStep4();
+    }
+
+    function updateGlobalCounters() {
+      const total = documents.length;
+      const wa = documents.filter(d => d.channel === 'WhatsApp').length;
+      const em = documents.filter(d => d.channel === 'E-mail').length;
+      const up = documents.filter(d => d.channel === 'Upload').length;
+      const approved = documents.filter(d => d.validationStatus === 'approved').length;
+      const pending = documents.filter(d => d.validationStatus === 'pending').length;
+
+      document.getElementById('headerTotalBadge').textContent = `${total} docs`;
+      document.getElementById('kpiTotalDocs').textContent = total;
+      document.getElementById('kpiWhatsapp').textContent = wa;
+      document.getElementById('kpiEmail').textContent = em;
+      document.getElementById('kpiUpload').textContent = up;
+      document.getElementById('queueCountLabel').textContent = total;
+      document.getElementById('approvedCountBtn').textContent = approved;
+      document.getElementById('pendingCountBackBtn').textContent = pending;
+    }
+
+    // =========================================================================
+    // STEP 1 RENDERING & ACTIONS
+    // =========================================================================
+    function renderStep1Queue() {
+      const filter = document.getElementById('channelFilterStep1').value;
+      const list = document.getElementById('step1QueueList');
+      const filtered = filter === 'ALL' ? documents : documents.filter(d => d.channel === filter);
+
+      list.innerHTML = filtered.map((doc, idx) => {
+        const channelBadge = doc.channel === 'WhatsApp'
+          ? '<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium"><i class="fa-brands fa-whatsapp mr-1"></i>WhatsApp</span>'
+          : doc.channel === 'E-mail'
+            ? '<span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-medium"><i class="fa-regular fa-envelope mr-1"></i>E-mail</span>'
+            : '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium"><i class="fa-solid fa-upload mr-1"></i>Upload</span>';
+
+        const isImg = doc.filename.endsWith('.jpg') || doc.filename.endsWith('.png');
+        const fileIcon = isImg
+          ? '<i class="fa-regular fa-file-image text-amber-600 text-base"></i>'
+          : '<i class="fa-regular fa-file-pdf text-rose-600 text-base"></i>';
+
+        return `
+          <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="font-mono text-xs text-slate-400 w-5">${String(idx + 1).padStart(2, '0')}</span>
+              <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">${fileIcon}</div>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-slate-800 truncate">${doc.filename}</p>
+                <p class="text-[11px] text-slate-500">Recebido hoje • ${doc.pages} pág.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              ${channelBadge}
+              <span class="hidden sm:inline-block text-[11px] text-slate-500 font-medium">Na fila</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function simulateIncomingDoc(channel) {
+      const n = documents.length + 1;
+      const samples = [
+        { filename: `NF_fornecedor_${n}.pdf`, type: 'Nota fiscal', issuer: 'Logística Rápida LTDA', taxId: '41.229.881/0001-04', amount: 'R$ 2.740,00', numericAmount: 2740 },
+        { filename: `foto_boleto_${n}.jpg`, type: 'Boleto', issuer: 'Claro Empresas S.A.', taxId: '40.432.544/0001-47', amount: 'R$ 489,90', numericAmount: 489.90 }
+      ];
+      const pick = samples[n % samples.length];
+      documents.unshift({
+        id: `doc-${Date.now()}`,
+        filename: pick.filename,
+        channel,
+        ocrStatus: 'READY',
+        validationStatus: 'pending',
+        type: pick.type,
+        typeConfidence: 94,
+        pages: 1,
+        issuer: pick.issuer,
+        taxId: pick.taxId,
+        docNumber: `00${n}9`,
+        date: '12/11/2026',
+        amount: pick.amount,
+        numericAmount: pick.numericAmount,
+        recipient: 'Opto Capital Gestão',
+        fieldConfidences: { issuer: 95, taxId: 93, docNumber: 94, date: 96, amount: 91, recipient: 92 },
+        lowConfField: null,
+        selectedBatch: true
+      });
+      updateGlobalCounters();
+      renderStep1Queue();
+      showToast(`Novo arquivo "${pick.filename}" recebido via ${channel}!`, 'success');
+    }
+
+    function handleManualUpload(e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      files.forEach((f, idx) => {
+        documents.unshift({
+          id: `doc-up-${Date.now()}-${idx}`,
+          filename: f.name,
+          channel: 'Upload',
+          ocrStatus: 'READY',
+          validationStatus: 'pending',
+          type: 'Nota fiscal',
+          typeConfidence: 92,
+          pages: 1,
+          issuer: 'Fornecedor Importado LTDA',
+          taxId: '18.902.441/0001-55',
+          docNumber: `UP-${100 + idx}`,
+          date: '12/11/2026',
+          amount: 'R$ 1.540,00',
+          numericAmount: 1540.00,
+          recipient: 'Opto Capital Gestão',
+          fieldConfidences: { issuer: 94, taxId: 91, docNumber: 92, date: 95, amount: 89, recipient: 90 },
+          lowConfField: null,
+          selectedBatch: true
+        });
+      });
+      updateGlobalCounters();
+      renderStep1Queue();
+      showToast(`${files.length} arquivo(s) adicionado(s) ao lote com sucesso.`, 'success');
+    }
+
+    // =========================================================================
+    // STEP 2 RENDERING & ACTIONS
+    // =========================================================================
+    function setStep2Filter(filter) {
+      step2Filter = filter;
+      renderStep2();
+    }
+
+    function completeAllProcessing() {
+      documents.forEach(d => {
+        if (d.ocrStatus === 'READING') d.ocrStatus = 'READY';
+      });
+      renderStep2();
+      showToast('Leitura OCR concluída para todos os documentos pendentes!', 'success');
+    }
+
+    function renderStep2() {
+      const total = documents.length;
+      const reading = documents.filter(d => d.ocrStatus === 'READING').length;
+      const unknown = documents.filter(d => d.ocrStatus === 'UNKNOWN').length;
+      const lowConf = documents.filter(d => d.ocrStatus === 'READY' && d.lowConfField !== null).length;
+      const ready = documents.filter(d => d.ocrStatus === 'READY' && d.lowConfField === null).length;
+      const processedCount = total - reading;
+      const pct = Math.round((processedCount / total) * 100);
+
+      document.getElementById('s2CountAll').textContent = total;
+      document.getElementById('s2CountReady').textContent = ready;
+      document.getElementById('s2CountLow').textContent = lowConf;
+      document.getElementById('s2CountRead').textContent = reading;
+      document.getElementById('s2CountUnk').textContent = unknown;
+
+      document.getElementById('ocrProgressLabel').textContent = `${processedCount} de ${total} documentos lidos`;
+      document.getElementById('ocrProgressPct').textContent = `${pct}%`;
+      document.getElementById('ocrProgressBar').style.width = `${pct}%`;
+
+      let filtered = documents;
+      if (step2Filter === 'READY') filtered = documents.filter(d => d.ocrStatus === 'READY' && !d.lowConfField);
+      if (step2Filter === 'LOW_CONF') filtered = documents.filter(d => d.ocrStatus === 'READY' && d.lowConfField);
+      if (step2Filter === 'READING') filtered = documents.filter(d => d.ocrStatus === 'READING');
+      if (step2Filter === 'UNKNOWN') filtered = documents.filter(d => d.ocrStatus === 'UNKNOWN');
+
+      const grid = document.getElementById('step2CardsGrid');
+      grid.innerHTML = filtered.map(doc => {
+        const isSelected = doc.id === selectedDocId;
+        let badge = '';
+        let barColor = 'bg-teal-600';
+        let barWidth = '100%';
+
+        if (doc.ocrStatus === 'READING') {
+          badge = '<span class="px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Lendo OCR</span>';
+          barColor = 'bg-sky-500';
+          barWidth = '55%';
+        } else if (doc.ocrStatus === 'UNKNOWN') {
+          badge = '<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">Não reconhecido</span>';
+          barColor = 'bg-rose-500';
+          barWidth = '30%';
+        } else if (doc.lowConfField) {
+          badge = '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">Baixa confiança</span>';
+          barColor = 'bg-amber-500';
+          barWidth = '72%';
+        } else {
+          badge = '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Extraído</span>';
+          barColor = 'bg-emerald-600';
+          barWidth = '100%';
+        }
+
+        return `
+          <div onclick="selectStep2Doc('${doc.id}')"
+            class="bg-white rounded-xl p-4 border ${isSelected ? 'border-teal-600 ring-2 ring-teal-600/20' : 'border-slate-200 hover:border-slate-300'} shadow-sm cursor-pointer transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-xs font-bold text-slate-900 truncate">${doc.filename}</span>
+                ${badge}
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">${doc.ocrStatus === 'READING' ? 'Identificando estrutura...' : doc.type}</p>
+            </div>
+
+            <div class="mt-4">
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>${doc.channel}</span>
+                <span class="font-mono font-semibold text-slate-700">${doc.ocrStatus === 'READING' ? '...' : doc.amount}</span>
+              </div>
+              <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full ${barColor} rounded-full" style="width: ${barWidth}"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      renderStep2Inspector();
+    }
+
+    function selectStep2Doc(id) {
+      selectedDocId = id;
+      renderStep2();
+    }
+
+    function renderStep2Inspector() {
+      const doc = documents.find(d => d.id === selectedDocId) || documents[0];
+      const inspector = document.getElementById('step2Inspector');
+
+      inspector.innerHTML = `
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700">Inspeção de Extração IA</span>
+              <h3 class="font-display font-bold text-sm text-slate-900 mt-0.5">${doc.filename}</h3>
+            </div>
+            <span class="px-2 py-1 rounded bg-slate-100 font-mono text-xs font-bold text-slate-700">${doc.typeConfidence}% conf.</span>
+          </div>
+
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">Tipo Detectado</span>
+              <span class="font-bold text-slate-800">${doc.type}</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">Canal / Páginas</span>
+              <span class="font-bold text-slate-800">${doc.channel} • ${doc.pages} pág.</span>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <h4 class="text-xs font-bold text-slate-700 mb-2">Campos Extraídos Automaticamente</h4>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-100">
+                <span class="text-slate-500">Emissor</span>
+                <span class="font-semibold text-slate-900 text-right">${doc.issuer}</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-100">
+                <span class="text-slate-500">CNPJ / CPF</span>
+                <span class="font-mono text-slate-800">${doc.taxId}</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-100">
+                <span class="text-slate-500">Data Emissão</span>
+                <span class="font-mono text-slate-800">${doc.date}</span>
+              </div>
+              <div class="flex justify-between py-1.5 ${doc.lowConfField === 'amount' ? 'bg-amber-50 px-2 rounded border border-amber-200' : ''}">
+                <span class="text-slate-600 font-medium">Valor Total</span>
+                <span class="font-mono font-bold text-slate-900">${doc.amount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-200">
+          <button onclick="selectedDocId='${doc.id}'; goToStep(3);" class="w-full py-2.5 px-4 bg-[#0A192F] hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition">
+            <span>Conferir este documento na Etapa 3</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // STEP 3 RENDERING & ACTIONS (INDIVIDUAL & BATCH)
+    // =========================================================================
+    function setValidationMode(mode) {
+      validationMode = mode;
+      renderStep3();
+    }
+
+    function renderStep3() {
+      const btnIndiv = document.getElementById('modeBtn-individual');
+      const btnBatch = document.getElementById('modeBtn-batch');
+      const viewIndiv = document.getElementById('validationIndividualView');
+      const viewBatch = document.getElementById('validationBatchView');
+
+      if (validationMode === 'individual') {
+        btnIndiv.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#0A192F] text-white shadow-sm transition flex items-center gap-1.5';
+        btnBatch.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+        viewIndiv.classList.remove('hidden');
+        viewBatch.classList.add('hidden');
+        renderIndividualValidation();
+      } else {
+        btnBatch.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#0A192F] text-white shadow-sm transition flex items-center gap-1.5';
+        btnIndiv.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+        viewBatch.classList.remove('hidden');
+        viewIndiv.classList.add('hidden');
+        renderBatchValidation();
+      }
+      updateGlobalCounters();
+    }
+
+    function renderIndividualValidation() {
+      const approvedCount = documents.filter(d => d.validationStatus === 'approved').length;
+      document.getElementById('indivQueueProgress').textContent = `${approvedCount}/${documents.length} aprovados`;
+
+      // Render left sidebar list
+      const queueList = document.getElementById('indivQueueList');
+      queueList.innerHTML = documents.map(doc => {
+        const active = doc.id === selectedDocId;
+        let statusTag = '';
+        if (doc.validationStatus === 'approved') {
+          statusTag = '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Aprovado</span>';
+        } else if (doc.validationStatus === 'rejected') {
+          statusTag = '<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">Rejeitado</span>';
+        } else {
+          statusTag = '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Pendente</span>';
+        }
+
+        return `
+          <div onclick="selectedDocId='${doc.id}'; renderIndividualValidation();"
+            class="p-3 cursor-pointer transition ${active ? 'bg-teal-50/80 border-l-4 border-teal-600' : 'hover:bg-slate-50'}">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-bold text-slate-900 truncate">${doc.filename}</span>
+              ${statusTag}
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+              <span>${doc.type}</span>
+              <span class="font-mono">${doc.amount}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const doc = documents.find(d => d.id === selectedDocId) || documents[0];
+      document.getElementById('viewerDocFilename').textContent = doc.filename;
+      document.getElementById('viewerDocSource').textContent = doc.channel;
+      document.getElementById('formDocType').textContent = `${doc.type} • #${doc.docNumber}`;
+
+      // Status pill
+      const badgeEl = document.getElementById('formStatusBadge');
+      if (doc.validationStatus === 'approved') {
+        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+        badgeEl.textContent = 'Aprovado';
+      } else if (doc.validationStatus === 'rejected') {
+        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800';
+        badgeEl.textContent = 'Rejeitado';
+      } else {
+        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800';
+        badgeEl.textContent = 'Conferindo';
+      }
+
+      // Alert visibility
+      const alertBox = document.getElementById('lowConfAlertBox');
+      if (doc.lowConfField) {
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+      }
+
+      // Render Document Visual Preview Canvas
+      renderDocumentPaper('documentPreviewCanvas', doc);
+
+      // Render Editable Fields
+      const formContainer = document.getElementById('indivFieldsForm');
+      const fields = [
+        { key: 'issuer', label: 'Emissor / Titular', val: doc.issuer, conf: doc.fieldConfidences.issuer },
+        { key: 'taxId', label: 'CNPJ / CPF', val: doc.taxId, conf: doc.fieldConfidences.taxId },
+        { key: 'docNumber', label: 'Número / Código', val: doc.docNumber, conf: doc.fieldConfidences.docNumber },
+        { key: 'date', label: 'Data de Emissão / Venc.', val: doc.date, conf: doc.fieldConfidences.date },
+        { key: 'amount', label: 'Valor Total', val: doc.amount, conf: doc.fieldConfidences.amount },
+        { key: 'recipient', label: 'Tomador / Destinatário', val: doc.recipient, conf: doc.fieldConfidences.recipient }
+      ];
+
+      formContainer.innerHTML = fields.map(f => {
+        const isLow = f.conf < 80;
+        return `
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1">
+              <label class="font-semibold text-slate-700">${f.label}</label>
+              <span class="font-mono text-[11px] font-bold ${isLow ? 'text-amber-700 bg-amber-100 px-1.5 rounded' : 'text-emerald-700'}">
+                ${f.conf}% conf.
+              </span>
+            </div>
+            <input type="text" data-field="${f.key}" value="${f.val}"
+              class="indiv-field-input w-full px-3 py-2 text-xs font-medium rounded-lg border ${isLow ? 'border-amber-400 bg-amber-50/70 text-slate-900 font-bold' : 'border-slate-300 bg-white text-slate-800'} focus:outline-none focus:border-teal-600" />
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderDocumentPaper(containerId, doc) {
+      const container = document.getElementById(containerId);
+      const isAmountLow = doc.lowConfField === 'amount';
+      container.innerHTML = `
+        <div class="border-b-2 border-slate-800 pb-3 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Documento Original Digitalizado</span>
+            <h4 class="font-mono font-bold text-sm text-slate-900 uppercase">${doc.type}</h4>
+          </div>
+          <span class="font-mono text-xs px-2 py-0.5 border border-slate-400 text-slate-700">Nº ${doc.docNumber}</span>
+        </div>
+
+        <div class="mt-4 space-y-3 font-mono text-xs text-slate-700">
+          <div class="p-2 rounded bg-slate-50 border border-slate-200">
+            <span class="text-[10px] text-slate-400 block">EMISSOR / RAZÃO SOCIAL</span>
+            <span class="font-bold text-slate-900">${doc.issuer}</span>
+            <span class="block text-[11px] text-slate-600 mt-0.5">DOC: ${doc.taxId}</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2 rounded bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-400 block">DATA</span>
+              <span class="font-semibold text-slate-900">${doc.date}</span>
+            </div>
+            <div class="p-2 rounded bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-400 block">TOMADOR</span>
+              <span class="font-semibold text-slate-900 truncate block">${doc.recipient}</span>
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-dashed border-slate-300">
+            <div class="p-3 rounded-lg flex items-center justify-between ${isAmountLow ? 'bg-amber-100/90 border-2 border-amber-500 low-confidence-highlight' : 'bg-teal-50/70 border border-teal-300'}">
+              <div>
+                <span class="text-[10px] uppercase font-bold ${isAmountLow ? 'text-amber-800' : 'text-teal-800'} block">Valor Total Extraído</span>
+                <span class="text-[10px] text-slate-500">OCR Bounding Box #04</span>
+              </div>
+              <span class="font-mono font-extrabold text-base text-slate-900">${doc.amount}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveCurrentEdits(silent = false) {
+      const doc = documents.find(d => d.id === selectedDocId);
+      if (!doc) return;
+      document.querySelectorAll('.indiv-field-input').forEach(inp => {
+        const key = inp.dataset.field;
+        doc[key] = inp.value;
+        if (key === 'amount') {
+          const parsed = parseFloat(inp.value.replace(/[^\d,]/g, '').replace(',', '.'));
+          if (!isNaN(parsed)) doc.numericAmount = parsed;
+        }
+      });
+      if (!silent) showToast(`Alterações salvas em ${doc.filename}.`, 'info');
+    }
+
+    function approveCurrentDoc() {
+      saveCurrentEdits(true);
+      const doc = documents.find(d => d.id === selectedDocId);
+      if (doc) {
+        doc.validationStatus = 'approved';
+        doc.lowConfField = null;
+        showToast(`${doc.filename} aprovado e enviado para a base de saída!`, 'success');
+      }
+      navigateDoc(1);
+    }
+
+    function rejectCurrentDoc() {
+      const doc = documents.find(d => d.id === selectedDocId);
+      if (doc) {
+        doc.validationStatus = 'rejected';
+        showToast(`${doc.filename} rejeitado e removido da exportação.`, 'info');
+      }
+      navigateDoc(1);
+    }
+
+    function navigateDoc(delta) {
+      const idx = documents.findIndex(d => d.id === selectedDocId);
+      const nextIdx = (idx + delta + documents.length) % documents.length;
+      selectedDocId = documents[nextIdx].id;
+      renderIndividualValidation();
+      updateGlobalCounters();
+    }
+
+    function adjustZoom(delta) {
+      viewerZoom = Math.min(130, Math.max(80, viewerZoom + delta));
+      document.getElementById('zoomLabel').textContent = `${viewerZoom}%`;
+      document.getElementById('documentPreviewCanvas').style.transform = `scale(${viewerZoom / 100})`;
+    }
+
+    // Batch Mode
+    function setBatchFilter(filter) {
+      batchFilter = filter;
+      renderBatchValidation();
+    }
+
+    function renderBatchValidation() {
+      let filtered = documents;
+      if (batchFilter === 'LOW') filtered = documents.filter(d => d.lowConfField !== null || d.fieldConfidences.amount < 80);
+      else if (batchFilter !== 'ALL') filtered = documents.filter(d => d.type === batchFilter);
+
+      const selectedCount = documents.filter(d => d.selectedBatch).length;
+      document.getElementById('selectedRowsCount').textContent = selectedCount;
+
+      const tbody = document.getElementById('batchTableBody');
+      tbody.innerHTML = filtered.map(doc => {
+        const isSelectedRow = doc.id === selectedDocId;
+        const isLow = doc.lowConfField !== null || doc.fieldConfidences.amount < 80;
+        const statusBadge = doc.validationStatus === 'approved'
+          ? '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Aprovado</span>'
+          : doc.validationStatus === 'rejected'
+            ? '<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">Rejeitado</span>'
+            : '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">Conferir</span>';
+
+        return `
+          <tr onclick="selectBatchRow('${doc.id}')" class="cursor-pointer transition ${isSelectedRow ? 'bg-teal-50/70' : 'hover:bg-slate-50'}">
+            <td class="p-3" onclick="event.stopPropagation()">
+              <input type="checkbox" ${doc.selectedBatch ? 'checked' : ''} onchange="toggleRowCheckbox('${doc.id}', this.checked)" class="rounded border-slate-300 text-teal-700" />
+            </td>
+            <td class="p-3 font-bold text-slate-900">${doc.filename}</td>
+            <td class="p-3 text-slate-600">${doc.type}</td>
+            <td class="p-3">
+              <input type="text" value="${doc.issuer}" onchange="updateCellField('${doc.id}', 'issuer', this.value)" onclick="event.stopPropagation()"
+                class="w-full px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-teal-600 focus:bg-white bg-transparent text-xs" />
+            </td>
+            <td class="p-3 font-mono text-slate-600">${doc.taxId}</td>
+            <td class="p-3">
+              <input type="text" value="${doc.amount}" onchange="updateCellField('${doc.id}', 'amount', this.value)" onclick="event.stopPropagation()"
+                class="w-28 px-2 py-1 rounded font-mono font-bold text-xs ${isLow ? 'bg-amber-100 border border-amber-400 text-amber-950' : 'border border-transparent hover:border-slate-300 bg-transparent text-slate-900'}" />
+            </td>
+            <td class="p-3 font-mono font-bold ${isLow ? 'text-amber-700' : 'text-emerald-700'}">${doc.fieldConfidences.amount}%</td>
+            <td class="p-3">${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const activeDoc = documents.find(d => d.id === selectedDocId) || documents[0];
+      document.getElementById('batchPreviewTitle').textContent = activeDoc.filename;
+      document.getElementById('batchPreviewConf').textContent = `Confiança: ${activeDoc.fieldConfidences.amount}%`;
+      renderDocumentPaper('batchDocumentPreview', activeDoc);
+    }
+
+    function selectBatchRow(id) {
+      selectedDocId = id;
+      renderBatchValidation();
+    }
+
+    function toggleRowCheckbox(id, checked) {
+      const doc = documents.find(d => d.id === id);
+      if (doc) doc.selectedBatch = checked;
+      document.getElementById('selectedRowsCount').textContent = documents.filter(d => d.selectedBatch).length;
+    }
+
+    function toggleSelectAllBatch(el) {
+      documents.forEach(d => d.selectedBatch = el.checked);
+      renderBatchValidation();
+    }
+
+    function updateCellField(id, field, val) {
+      const doc = documents.find(d => d.id === id);
+      if (!doc) return;
+      doc[field] = val;
+      if (field === 'amount') {
+        const parsed = parseFloat(val.replace(/[^\d,]/g, '').replace(',', '.'));
+        if (!isNaN(parsed)) doc.numericAmount = parsed;
+        doc.lowConfField = null;
+        doc.fieldConfidences.amount = 100;
+      }
+      renderBatchValidation();
+      showToast(`Célula atualizada em ${doc.filename}.`, 'info');
+    }
+
+    function batchApproveSelected() {
+      let count = 0;
+      documents.forEach(d => {
+        if (d.selectedBatch) {
+          d.validationStatus = 'approved';
+          d.lowConfField = null;
+          d.selectedBatch = false;
+          count++;
+        }
+      });
+      if (count === 0) return showToast('Selecione ao menos uma linha para aprovar em lote.', 'info');
+      renderBatchValidation();
+      updateGlobalCounters();
+      showToast(`${count} documento(s) aprovados em lote com sucesso!`, 'success');
+    }
+
+    function batchRejectSelected() {
+      let count = 0;
+      documents.forEach(d => {
+        if (d.selectedBatch) {
+          d.validationStatus = 'rejected';
+          d.selectedBatch = false;
+          count++;
+        }
+      });
+      if (count === 0) return showToast('Selecione ao menos uma linha para rejeitar.', 'info');
+      renderBatchValidation();
+      updateGlobalCounters();
+      showToast(`${count} documento(s) rejeitados.`, 'info');
+    }
+
+    // =========================================================================
+    // STEP 4 RENDERING & EXPORT
+    // =========================================================================
+    function renderStep4() {
+      const approved = documents.filter(d => d.validationStatus === 'approved');
+      const pending = documents.filter(d => d.validationStatus === 'pending');
+      const rejected = documents.filter(d => d.validationStatus === 'rejected');
+
+      const totalVol = approved.reduce((acc, d) => acc + (d.numericAmount || 0), 0);
+
+      document.getElementById('outApprovedCount').textContent = approved.length;
+      document.getElementById('outPendingCount').textContent = pending.length;
+      document.getElementById('outRejectedCount').textContent = rejected.length;
+      document.getElementById('outTotalVolume').textContent = totalVol.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('previewRowCount').textContent = approved.length;
+
+      const tbody = document.getElementById('outputPreviewBody');
+      tbody.innerHTML = approved.map((doc, i) => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 text-slate-400">${i + 1}</td>
+          <td class="p-3 font-sans font-bold text-slate-900">${doc.filename}</td>
+          <td class="p-3 font-sans text-slate-600">${doc.channel}</td>
+          <td class="p-3 font-sans text-teal-800 font-semibold">${doc.type}</td>
+          <td class="p-3 font-sans text-slate-800">${doc.issuer}</td>
+          <td class="p-3 text-slate-600">${doc.taxId}</td>
+          <td class="p-3 text-slate-600">${doc.date}</td>
+          <td class="p-3 text-right font-bold text-slate-900">${doc.amount}</td>
+        </tr>
+      `).join('');
+    }
+
+    function exportSpreadsheet(format) {
+      const approved = documents.filter(d => d.validationStatus === 'approved');
+      const batchName = document.getElementById('batchNameInput').value || 'lote_opto_capital';
+      const header = ['Arquivo', 'Canal', 'Tipo_Documento', 'Emissor', 'CNPJ_CPF', 'Data', 'Valor_Total'];
+      const rows = approved.map(d => [d.filename, d.channel, d.type, `"${d.issuer}"`, d.taxId, d.date, `"${d.amount}"`]);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [header.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `${batchName}_estruturado.${format === 'xlsx' ? 'csv' : 'csv'}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast(`Arquivo ${batchName}_estruturado.${format} gerado com ${approved.length} registros validados!`, 'success');
+    }
+
+    // =========================================================================
+    // MODALS, COPILOT DRAWER & TOASTS
+    // =========================================================================
+    function toggleModal(id, show) {
+      const el = document.getElementById(id);
+      if (show) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+
+    function toggleDrawer(show) {
+      const drawer = document.getElementById('aiDrawer');
+      if (show) drawer.classList.remove('translate-x-full');
+      else drawer.classList.add('translate-x-full');
+    }
+
+    function askCopilot(question) {
+      const chat = document.getElementById('aiChatMessages');
+      chat.innerHTML += `
+        <div class="bg-[#0A192F] text-white p-3 rounded-xl ml-8 shadow-sm">
+          ${question}
+        </div>
+      `;
+
+      let reply = 'Posso ajudar a auditar valores, CNPJs ou identificar divergências antes da exportação.';
+      if (question.toLowerCase().includes('confiança')) {
+        reply = 'Os arquivos <strong>NF_0412.pdf</strong> (72%) e <strong>boleto_agua.pdf</strong> (64%) tiveram baixa nitidez no campo de Valor Total. Recomendo revisá-los na Etapa 3 antes de exportar.';
+      } else if (question.toLowerCase().includes('somar') || question.toLowerCase().includes('total')) {
+        const sum = documents.filter(d => d.validationStatus === 'approved').reduce((a, b) => a + b.numericAmount, 0);
+        reply = `O volume financeiro atualmente <strong>aprovado</strong> soma <strong>${sum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>.`;
+      } else if (question.toLowerCase().includes('human')) {
+        reply = 'No modelo <strong>Human-in-the-loop</strong> da Opto Capital, a IA elimina a digitação manual, mas nenhum dado vai para a planilha sem validação humana explícita.';
+      }
+
+      setTimeout(() => {
+        chat.innerHTML += `
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm mr-4">
+            <div class="text-teal-700 font-bold mb-1"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Opto Copilot</div>
+            <p class="text-slate-700 leading-relaxed">${reply}</p>
+          </div>
+        `;
+        chat.scrollTop = chat.scrollHeight;
+      }, 250);
+    }
+
+    function handleCopilotSubmit(e) {
+      e.preventDefault();
+      const inp = document.getElementById('copilotInput');
+      if (!inp.value.trim()) return;
+      askCopilot(inp.value.trim());
+      inp.value = '';
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      const colors = type === 'success'
+        ? 'bg-[#0A192F] text-white border-l-4 border-emerald-400'
+        : 'bg-[#0A192F] text-white border-l-4 border-teal-400';
+
+      el.className = `${colors} px-4 py-3 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2.5 pointer-events-auto fade-in max-w-sm`;
+      el.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-info text-teal-400'}"></i>
+        <span>${msg}</span>
+      `;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3800);
+    }
+  </script>
+</body>
+</html>
