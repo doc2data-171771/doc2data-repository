@@ -35,6 +35,5 @@ module.exports = {
     mimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'],
   },
   // Valores aceitos pelos CHECKs do banco
-  perfis: ['admin', 'operador', 'validador'],
   statusDocumento: ['recebido', 'processando', 'extraido', 'validado', 'rejeitado', 'erro'],
 };

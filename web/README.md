@@ -2,17 +2,20 @@
 
 Front-end do doc2data em **React + TypeScript + Vite**. Fala com a `doc2data-api` e cobre o fluxo inteiro do desafio:
 
-**Entrada → Leitura com IA → Conferência humana → Planilha**
+**Entrada → Leitura com IA → Conferência humana → Planilha ou Assistente IA**
 
-| Tela | Rota | Quem usa |
-|---|---|---|
-| Visão geral | `/` | todos |
-| Entrada (upload único ou em lote) | `/entrada` | admin, operador |
-| Documentos (lista, filtros, leitura com IA em fila) | `/documentos` | todos |
-| Conferência individual (original ao lado da ficha) | `/documentos/:id` | admin, validador |
-| Mesa de conferência (em lote) | `/conferencia` | admin, validador |
-| Planilhas (exportação XLSX/CSV e histórico) | `/planilhas` | todos |
-| Administração (pessoas, tipos, canais) | `/admin` | admin |
+Qualquer pessoa cria a própria conta na tela de login, e cada conta vê só os próprios documentos.
+
+| Tela | Rota |
+|---|---|
+| Página inicial, login e cadastro | (antes de entrar) |
+| Visão geral | `/` |
+| Entrada (upload único ou em lote) | `/entrada` |
+| Documentos (lista, filtros, leitura com IA em fila) | `/documentos` |
+| Conferência individual (original ao lado da ficha) | `/documentos/:id` |
+| Mesa de conferência (em lote) | `/conferencia` |
+| Assistente IA (perguntas sobre os dados dos documentos) | `/assistente` |
+| Planilhas (exportação XLSX/CSV e histórico) | `/planilhas` |
 
 ## Rodar
 
@@ -22,7 +25,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-Em desenvolvimento, o `.env.development` liga o **modo demonstração** (`VITE_MOCK=true`): o app roda com dados fictícios no navegador, sem API nem Supabase. Para usar a API de verdade, crie um `.env.local`:
+Em desenvolvimento, o `.env.development` liga o **modo demonstração** (`VITE_MOCK=true`): o app roda com dados fictícios no navegador, sem API nem Supabase. Para usar a API de verdade, crie um `.env.development.local` (o `.env.local` não basta: o `.env.development` tem prioridade sobre ele):
 
 ```
 VITE_API_URL=http://localhost:3000
@@ -54,7 +57,7 @@ Atalhos na conferência individual: **A** aprova, **R** rejeita, **J/K** vão pa
 
 ## Identidade visual
 
-"Mesa de conferência": papel quente, tinta quase preta e um único acento cor de carimbo. Os títulos usam a serifa editorial Instrument Serif, a interface usa Geist e números e códigos usam Geist Mono com algarismos tabulares. Um documento aprovado recebe um carimbo **CONFERIDO**. Há tema claro e escuro, e as fontes ficam no próprio pacote (sem CDN).
+Inspirada no Linear: escuro por padrão, superfícies quase pretas, bordas finas e um único acento índigo. A interface usa Geist, e números e códigos usam Geist Mono com algarismos tabulares. Há tema claro e escuro, e as fontes ficam no próprio pacote (sem CDN).
 
 ## Limitações conhecidas
 

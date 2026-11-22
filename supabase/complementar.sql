@@ -28,11 +28,4 @@ insert into tipos_documento (nome, descricao) values
   ('Outro',                      'Tipo não classificado')
 on conflict (nome) do nothing;
 
--- 4) PRIMEIRO ADMIN (a API só deixa entrar quem tem linha em "profiles")
---    a) No painel: Authentication > Users > Add user (marque "Auto Confirm User")
---    b) Copie o "User UID" do usuário criado e rode (trocando os valores):
---
--- insert into profiles (id, nome, perfil)
--- values ('COLE-O-USER-UID-AQUI', 'Seu Nome', 'admin');
---
---    Depois disso, os demais usuários são criados pela própria API (POST /usuarios).
+-- 4) Contas: não precisa criar nada aqui. Cada pessoa cria a própria conta pela tela de cadastro (POST /auth/registro).

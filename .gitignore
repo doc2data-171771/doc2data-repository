@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.local
+dist/
+
+# saída gerada pelo graphify (mapa do código)
+graphify-out/
