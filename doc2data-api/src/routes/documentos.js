@@ -2,7 +2,6 @@ const crypto = require('crypto');
 const express = require('express');
 const config = require('../config');
 const { admin } = require('../supabase');
-const { requirePerfil } = require('../middlewares/auth');
 const { AppError, asyncHandler, throwIfError } = require('../utils/errors');
 const {
   requireString,
@@ -17,8 +16,14 @@ const router = express.Router();
 const BUCKET = config.buckets.documentos;
 const SELECT = '*, canais(id, nome), tipos_documento(id, nome), enviado:profiles(id, nome)';
 
-async function buscarDocumento(id) {
-  const { data, error } = await admin.from('documentos').select('*').eq('id', id).maybeSingle();
+// Cada usuário só enxerga os documentos que ele mesmo enviou.
+async function buscarDocumento(id, usuarioId) {
+  const { data, error } = await admin
+    .from('documentos')
+    .select('*')
+    .eq('id', id)
+    .eq('enviado_por', usuarioId)
+    .maybeSingle();
   throwIfError(error);
   if (!data) throw new AppError(404, 'Documento não encontrado');
   return data;
@@ -36,7 +41,6 @@ async function urlAssinada(caminho, nomeArquivo) {
 // ou vários: { arquivos: [ {...}, {...} ] }  (lote, até 50)
 router.post(
   '/upload-url',
-  requirePerfil('admin', 'operador'),
   asyncHandler(async (req, res) => {
     const lista = Array.isArray(req.body?.arquivos) ? req.body.arquivos : [req.body];
     if (!lista.length || lista.length > 50) {
@@ -105,7 +109,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const { page, limit, from, to } = parsePagination(req.query);
 
-    let query = admin.from('documentos').select(SELECT, { count: 'exact' });
+    let query = admin.from('documentos').select(SELECT, { count: 'exact' }).eq('enviado_por', req.user.id);
 
     if (req.query.status) {
       if (!config.statusDocumento.includes(req.query.status)) {
@@ -140,6 +144,7 @@ router.get(
         `${SELECT}, processamentos(*, dados_extraidos(*, validacoes(*, validador:profiles(id, nome))))`
       )
       .eq('id', id)
+      .eq('enviado_por', req.user.id)
       .maybeSingle();
     throwIfError(error);
     if (!data) throw new AppError(404, 'Documento não encontrado');
@@ -155,7 +160,6 @@ router.get(
 // PATCH /documentos/:id  { "canal_id"?, "tipo_documento_id"? }
 router.patch(
   '/:id',
-  requirePerfil('admin', 'operador'),
   asyncHandler(async (req, res) => {
     const id = requireUuid(req.params.id, 'id');
     const update = {};
@@ -165,7 +169,7 @@ router.patch(
     }
     if (!Object.keys(update).length) throw new AppError(400, 'Nenhum campo para atualizar');
 
-    const { data, error } = await admin.from('documentos').update(update).eq('id', id).select(SELECT).maybeSingle();
+    const { data, error } = await admin.from('documentos').update(update).eq('id', id).eq('enviado_por', req.user.id).select(SELECT).maybeSingle();
     throwIfError(error, { fk: 'canal_id ou tipo_documento_id não existe' });
     if (!data) throw new AppError(404, 'Documento não encontrado');
     res.json(data);
@@ -175,20 +179,18 @@ router.patch(
 // POST /documentos/:id/processar  -> lê o documento com IA e grava os dados extraídos
 router.post(
   '/:id/processar',
-  requirePerfil('admin', 'operador'),
   asyncHandler(async (req, res) => {
-    const documento = await buscarDocumento(requireUuid(req.params.id, 'id'));
+    const documento = await buscarDocumento(requireUuid(req.params.id, 'id'), req.user.id);
     const resultado = await processarDocumento(documento);
     res.json(resultado);
   })
 );
 
-// DELETE /documentos/:id  (só admin; bloqueado se o documento já foi exportado)
+// DELETE /documentos/:id  (bloqueado se o documento já foi exportado)
 router.delete(
   '/:id',
-  requirePerfil('admin'),
   asyncHandler(async (req, res) => {
-    const documento = await buscarDocumento(requireUuid(req.params.id, 'id'));
+    const documento = await buscarDocumento(requireUuid(req.params.id, 'id'), req.user.id);
 
     const { error } = await admin.from('documentos').delete().eq('id', documento.id);
     throwIfError(error, { fk: 'Este documento já foi usado em uma exportação e não pode ser excluído' });

@@ -19,7 +19,8 @@ O status de cada documento acompanha o fluxo:
 
 | Pasta | O que contém |
 |---|---|
-| `MVP/` | Front-end: site em HTML, CSS e JavaScript (`index.html`) |
+| `web/` | Front-end: React + TypeScript + Vite (ver [`web/README.md`](web/README.md)) |
+| `MVP/`, `site/` | Protótipos antigos do front (não ligados à API) |
 | `doc2data-api/` | API em Node.js + Express (código, scripts SQL e documentação própria) |
 | `supabase/` | Arquivos do banco de dados no Supabase |
 
@@ -27,7 +28,7 @@ A documentação detalhada da API está em [`doc2data-api/README.md`](doc2data-a
 
 ## Tecnologias
 
-- **Front-end:** HTML, CSS e JavaScript
+- **Front-end:** React, TypeScript, Vite, Tailwind CSS e TanStack Query
 - **API:** Node.js 20+, Express
 - **Banco de dados, login e arquivos:** Supabase (PostgreSQL, Auth e Storage)
 - **IA para leitura dos documentos:** Google Gemini
@@ -97,7 +98,7 @@ Teste: abra `http://localhost:3000/health`. Deve aparecer `{"status":"ok"}`.
 | `SUPABASE_ANON_KEY` | Supabase → Project Settings → API (`anon public`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (`service_role`) |
 | `GEMINI_API_KEY` | Google AI Studio |
-| `GEMINI_MODEL` | Opcional (padrão: `gemini-2.5-flash`) |
+| `GEMINI_MODEL` | Opcional (padrão: `gemini-4-hydrogen`) |
 | `CORS_ORIGIN` | Endereço do front-end (use `*` apenas para testes) |
 
 > **Segurança:** o arquivo `.env` nunca deve ir para o GitHub (o `.gitignore` já o bloqueia). A chave `service_role` dá acesso total ao banco e só pode existir no servidor, nunca no front-end.
@@ -115,7 +116,7 @@ O repositório tem duas partes publicadas em **dois projetos separados** da Verc
 | Projeto | Root Directory | O que publica |
 |---|---|---|
 | API | `doc2data-api` | A API (Express como função serverless) |
-| Front-end | `MVP` | O site estático (Framework Preset: Other, sem build) |
+| Front-end | `web` | O app React (Framework Preset: Vite; variável `VITE_API_URL`) |
 
 Para a API, cadastre as variáveis de ambiente em **Settings → Environment Variables** e faça um **Redeploy** sempre que alterá-las. Depois de publicar o front-end, troque o `CORS_ORIGIN` da API para o endereço dele.
 

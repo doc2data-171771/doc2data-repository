@@ -21,6 +21,7 @@ router.post(
         .from('documentos')
         .select('id')
         .eq('status', 'validado')
+        .eq('enviado_por', req.user.id)
         .order('data_envio', { ascending: false })
         .limit(500);
       throwIfError(error);
@@ -30,6 +31,14 @@ router.post(
         throw new AppError(400, 'Envie documento_ids (1 a 500 IDs) ou todos_validados: true');
       }
       documentoIds = [...new Set(ids.map((id, i) => requireUuid(id, `documento_ids[${i}]`)))];
+      // Só entram documentos do próprio usuário
+      const { count, error } = await admin
+        .from('documentos')
+        .select('id', { count: 'exact', head: true })
+        .in('id', documentoIds)
+        .eq('enviado_por', req.user.id);
+      throwIfError(error);
+      if (count !== documentoIds.length) throw new AppError(404, 'Algum documento não foi encontrado');
     }
     if (!documentoIds.length) throw new AppError(404, 'Não há documentos validados para exportar');
 
@@ -46,6 +55,7 @@ router.get(
     const { data, error, count } = await admin
       .from('exportacoes')
       .select('*, solicitante:profiles(id, nome), exportacao_documentos(count)', { count: 'exact' })
+      .eq('solicitado_por', req.user.id)
       .order('created_at', { ascending: false })
       .range(from, to);
     throwIfError(error);
@@ -58,7 +68,11 @@ router.get(
   '/:id/download',
   asyncHandler(async (req, res) => {
     const id = requireUuid(req.params.id, 'id');
-    const { data, error } = await admin.from('exportacoes').select('*').eq('id', id).maybeSingle();
+    const { data, error } = await admin.from('exportacoes')
+      .select('*')
+      .eq('id', id)
+      .eq('solicitado_por', req.user.id)
+      .maybeSingle();
     throwIfError(error);
     if (!data) throw new AppError(404, 'Exportação não encontrada');
     if (data.status !== 'gerado') throw new AppError(409, `Exportação com status "${data.status}" não tem arquivo`);

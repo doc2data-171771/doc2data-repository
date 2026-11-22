@@ -41,6 +41,43 @@ router.post(
   })
 );
 
+// POST /auth/registro  { "nome": "...", "email": "...", "senha": "..." }
+// Cadastro aberto: cada pessoa cria a própria conta e só enxerga os próprios documentos.
+router.post(
+  '/registro',
+  asyncHandler(async (req, res) => {
+    const nome = requireString(req.body?.nome, 'nome', 120);
+    const email = requireString(req.body?.email, 'email', 254).toLowerCase();
+    const senha = requireString(req.body?.senha, 'senha', 200);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new AppError(400, 'E-mail inválido');
+    if (senha.length < 8) throw new AppError(400, 'A senha deve ter pelo menos 8 caracteres');
+
+    // shortcut: confirma o e-mail na hora (sem link de verificação); ligar a confirmação do Supabase se o cadastro ficar público
+    const { data: auth, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password: senha,
+      email_confirm: true,
+    });
+    if (authError || !auth?.user) {
+      console.error('[auth.registro]', authError?.message);
+      throw new AppError(400, 'Não foi possível criar a conta (e-mail já cadastrado ou inválido)');
+    }
+
+    // "operador": dono da própria conta; não edita os cadastros globais (canais e tipos)
+    const { error: profileError } = await admin.from('profiles').insert({ id: auth.user.id, nome, perfil: 'operador' });
+    if (profileError) {
+      await admin.auth.admin.deleteUser(auth.user.id); // desfaz para não deixar usuário sem perfil
+      throwIfError(profileError);
+    }
+
+    const { data, error } = await anonClient().auth.signInWithPassword({ email, password: senha });
+    if (error || !data?.session) throw new AppError(500, 'Conta criada, mas o login falhou. Tente entrar');
+
+    const perfil = await carregarPerfil(data.user.id);
+    res.status(201).json(montarResposta(data.session, perfil, data.user.email));
+  })
+);
+
 // POST /auth/refresh  { "refresh_token": "..." }
 router.post(
   '/refresh',

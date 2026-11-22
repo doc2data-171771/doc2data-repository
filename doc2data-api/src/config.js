@@ -27,7 +27,7 @@ module.exports = {
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-4-hydrogen',
   },
   upload: {
     // 20 MB: limite para enviar o arquivo inline ao Gemini

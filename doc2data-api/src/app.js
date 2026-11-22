@@ -5,12 +5,11 @@ const { authenticate } = require('./middlewares/auth');
 const { notFound, errorHandler } = require('./utils/errors');
 
 const authRoutes = require('./routes/auth');
-const usuariosRoutes = require('./routes/usuarios');
 const { canaisRouter, tiposDocumentoRouter } = require('./routes/catalogos');
 const documentosRoutes = require('./routes/documentos');
-const processamentosRoutes = require('./routes/processamentos');
 const validacoesRoutes = require('./routes/validacoes');
 const exportacoesRoutes = require('./routes/exportacoes');
+const assistenteRoutes = require('./routes/assistente');
 
 const app = express();
 
@@ -26,13 +25,12 @@ app.use('/auth', authRoutes);
 // ---- Tudo abaixo exige login ----
 app.use(authenticate);
 app.get('/me', (req, res) => res.json(req.user));
-app.use('/usuarios', usuariosRoutes);
 app.use('/canais', canaisRouter);
 app.use('/tipos-documento', tiposDocumentoRouter);
 app.use('/documentos', documentosRoutes);
-app.use('/processamentos', processamentosRoutes);
 app.use('/validacoes', validacoesRoutes);
 app.use('/exportacoes', exportacoesRoutes);
+app.use('/assistente', assistenteRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

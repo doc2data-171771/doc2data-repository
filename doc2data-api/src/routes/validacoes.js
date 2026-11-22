@@ -1,28 +1,10 @@
 const express = require('express');
 const { admin } = require('../supabase');
-const { requirePerfil } = require('../middlewares/auth');
 const { AppError, asyncHandler, throwIfError } = require('../utils/errors');
-const { requireUuid, isPlainObject, parsePagination } = require('../utils/validate');
+const { requireUuid, isPlainObject } = require('../utils/validate');
 
 const router = express.Router();
 const STATUS = ['aprovado', 'corrigido', 'rejeitado'];
-
-// GET /validacoes?dados_extraidos_id=&page=&limit=
-router.get(
-  '/',
-  asyncHandler(async (req, res) => {
-    const { page, limit, from, to } = parsePagination(req.query);
-    let query = admin
-      .from('validacoes')
-      .select('*, validador:profiles(id, nome)', { count: 'exact' });
-    if (req.query.dados_extraidos_id) {
-      query = query.eq('dados_extraidos_id', requireUuid(req.query.dados_extraidos_id, 'dados_extraidos_id'));
-    }
-    const { data, error, count } = await query.order('validado_em', { ascending: false }).range(from, to);
-    throwIfError(error);
-    res.json({ dados: data, paginacao: { page, limit, total: count } });
-  })
-);
 
 // POST /validacoes  (validação humana)
 // { "dados_extraidos_id": "...", "status": "aprovado" | "corrigido" | "rejeitado",
@@ -31,7 +13,6 @@ router.get(
 // Efeito no documento: aprovado/corrigido -> "validado"; rejeitado -> "rejeitado".
 router.post(
   '/',
-  requirePerfil('admin', 'validador'),
   asyncHandler(async (req, res) => {
     const { status, dados_corrigidos: corrigidos, observacao } = req.body || {};
     const extraidoId = requireUuid(req.body?.dados_extraidos_id, 'dados_extraidos_id');
@@ -59,8 +40,10 @@ router.post(
       .from('documentos')
       .select('id, status')
       .eq('id', documentoId)
+      .eq('enviado_por', req.user.id)
       .maybeSingle();
     throwIfError(e2);
+    if (!doc) throw new AppError(404, 'Dados extraídos não encontrados');
     if (!['extraido', 'validado', 'rejeitado'].includes(doc?.status)) {
       throw new AppError(409, `Documento com status "${doc?.status}" não pode ser validado`);
     }

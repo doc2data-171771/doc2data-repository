@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* doc2data: visual inspirado no Linear. Escuro por padrão, superfícies quase pretas, um acento índigo. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-serif: var(--font-sans);
+
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-stamp: var(--stamp);
+  --color-stamp-soft: var(--stamp-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-err: var(--err);
+  --color-err-soft: var(--err-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+}
+
+:root {
+  --paper: #f7f7f8;
+  --sheet: #ffffff;
+  --sunk: #efeff1;
+  --ink: #0f1011;
+  --ink-2: #4b4e57;
+  --ink-3: #8a8f98;
+  --rule: #e6e6e9;
+  --rule-strong: #d4d4d9;
+  --stamp: #5e6ad2;
+  --stamp-soft: #ecedfb;
+  --ok: #1f8a4c;
+  --ok-soft: #e3f4ea;
+  --warn: #b26b00;
+  --warn-soft: #fbf0dc;
+  --err: #d23f3f;
+  --err-soft: #fbe6e6;
+  --info: #2f6fd6;
+  --info-soft: #e5eefb;
+  color-scheme: light;
+}
+
+.dark {
+  --paper: #08090a;
+  --sheet: #0f1011;
+  --sunk: #1a1b1e;
+  --ink: #f7f8f8;
+  --ink-2: #b0b4bb;
+  --ink-3: #6b6f76;
+  --rule: #1d1e21;
+  --rule-strong: #2a2b30;
+  --stamp: #7c7fff;
+  --stamp-soft: #1c1d3a;
+  --ok: #4cb782;
+  --ok-soft: #12261b;
+  --warn: #f2994a;
+  --warn-soft: #2d1f10;
+  --err: #eb5757;
+  --err-soft: #2e1515;
+  --info: #5e9cf5;
+  --info-soft: #111f33;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+}
+
+::selection {
+  background: var(--stamp);
+  color: var(--sheet);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Linhas de caderno contábil em áreas vazias */
+.ledger {
+  background-image: radial-gradient(var(--rule-strong) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+/* Carimbo: borda dupla, leve rotação */
+.stamp-mark {
+  border: 2px solid currentColor;
+  box-shadow: inset 0 0 0 2px var(--sheet), inset 0 0 0 3px currentColor;
+  transform: rotate(-4deg);
+}
+
+@keyframes stamp-in {
+  0% { transform: rotate(-4deg) scale(1.6); opacity: 0; }
+  60% { transform: rotate(-4deg) scale(0.96); opacity: 1; }
+  100% { transform: rotate(-4deg) scale(1); }
+}
+.stamp-in {
+  animation: stamp-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Feixe de leitura enquanto a IA processa */
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--info) 22%, transparent), transparent);
+  animation: scan 1.6s linear infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in,
+  .scanline::after {
+    animation: none;
+  }
+}
