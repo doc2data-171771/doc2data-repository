@@ -108,7 +108,7 @@ VITE_MOCK=false
 | `SUPABASE_ANON_KEY` | Supabase → Project Settings → API (`anon public`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (`service_role`) |
 | `GEMINI_API_KEY` | Google AI Studio |
-| `GEMINI_MODEL` | Opcional (padrão: `gemini-4-hydrogen`) |
+| `GEMINI_MODEL` | Opcional (padrão: `gemini-3.5-flash`) |
 | `CORS_ORIGIN` | Endereço do front-end (use `*` apenas para testes) |
 
 > **Segurança:** os arquivos `.env` nunca devem ir para o GitHub (o `.gitignore` já os bloqueia). A chave `service_role` dá acesso total ao banco e só pode existir no servidor, nunca no front-end.
