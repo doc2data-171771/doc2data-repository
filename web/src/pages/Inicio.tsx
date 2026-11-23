@@ -14,11 +14,11 @@ export function Inicio({ aoEntrar, aoCriarConta }: { aoEntrar: () => void; aoCri
     <div className="min-h-dvh flex flex-col bg-paper relative overflow-hidden">
       <div aria-hidden className="aurora pointer-events-none absolute -top-[360px] left-1/2 -translate-x-1/2 w-[1500px] h-[1000px] max-w-none rounded-full blur-[110px]" />
 
-      <header className="relative flex items-center justify-between px-6 sm:px-12 h-16">
-        <Logo />
-        <div className="flex items-center gap-2">
-          <Botao variante="fantasma" onClick={aoEntrar}>Entrar</Botao>
-          <Botao variante="primario" onClick={aoCriarConta}>Criar conta</Botao>
+      <header className="relative flex items-center justify-between px-6 sm:px-12 h-20">
+        <Logo tamanho="lg" />
+        <div className="flex items-center gap-2.5">
+          <Botao variante="fantasma" className="h-10 px-4 text-[14px]" onClick={aoEntrar}>Entrar</Botao>
+          <Botao variante="primario" className="h-10 px-4 text-[14px]" onClick={aoCriarConta}>Criar conta</Botao>
         </div>
       </header>
 
