@@ -30,13 +30,23 @@ function ItemNav({ para, icone, children, contador, destaque }: { para: string; 
       className={({ isActive }) =>
         clsx(
           'flex items-center gap-2.5 h-8 lg:h-7 px-2 rounded-[6px] text-[13px] transition-colors shrink-0',
-          isActive ? 'bg-sunk text-ink font-medium' : 'text-ink-2 hover:text-ink hover:bg-sunk/60',
+          isActive
+            ? 'bg-sunk text-ink font-medium shadow-[inset_0_0_0_1px_var(--rule-strong)]'
+            : 'text-ink-2 hover:text-ink hover:bg-sunk/60',
         )
       }
     >
-      <span className="size-4 [&>svg]:size-4 text-ink-3">{icone}</span>
-      <span className="flex-1">{children}</span>
-      {!!contador && <span className={clsx('font-mono text-[11px] tnum', destaque ? 'text-stamp' : 'text-ink-3')}>{contador}</span>}
+      {({ isActive }) => (
+        <>
+          <span className={clsx('size-4 [&>svg]:size-4 transition-colors', isActive ? 'text-stamp' : 'text-ink-3')}>{icone}</span>
+          <span className="flex-1">{children}</span>
+          {!!contador && (
+            <span className={clsx('font-mono text-[11px] tnum', destaque && 'px-1.5 rounded-full bg-stamp-soft text-stamp', !destaque && 'text-ink-3')}>
+              {contador}
+            </span>
+          )}
+        </>
+      )}
     </NavLink>
   )
 }
@@ -108,7 +118,7 @@ export function Shell() {
             </p>
           )}
           <div className="flex items-center gap-2 px-1.5 py-1.5">
-            <div className="size-6 rounded-full bg-stamp text-white grid place-items-center text-[10px] font-semibold shrink-0">
+            <div className="size-6 rounded-full bg-gradient-to-br from-stamp to-[#a855f7] text-white grid place-items-center text-[10px] font-semibold shrink-0">
               {usuario ? fmt.iniciais(usuario.nome) : '?'}
             </div>
             <div className="min-w-0 flex-1 leading-tight">
@@ -136,7 +146,7 @@ export function Shell() {
 
       {/* Conteúdo em um painel recuado, como no Linear */}
       <div className="min-w-0 lg:py-2 lg:pr-2">
-        <main className="lg:min-h-[calc(100dvh-16px)] lg:bg-sheet lg:border lg:border-rule lg:rounded-[10px] px-4 sm:px-8 lg:px-10 py-6 lg:py-8">
+        <main className="lg:min-h-[calc(100dvh-16px)] painel-luz lg:bg-sheet lg:border lg:border-rule lg:rounded-[12px] lg:shadow-[0_1px_3px_rgb(0_0_0/0.04)] px-4 sm:px-8 lg:px-10 py-6 lg:py-8">
           <div className="max-w-[1240px] mx-auto">
             <Outlet />
           </div>

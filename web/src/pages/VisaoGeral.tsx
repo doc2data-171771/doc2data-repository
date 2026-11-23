@@ -38,7 +38,7 @@ export function VisaoGeral() {
         sobretitulo={new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
         titulo={
           <>
-            {saudacao()}, <span className="italic">{primeiroNome}</span>.
+            {saudacao()}, <span className="text-stamp">{primeiroNome}</span>.
           </>
         }
         descricao={
@@ -50,9 +50,9 @@ export function VisaoGeral() {
         }
         acoes={
           <>
-                          <BotaoLink para="/entrada" icone={<Inbox className="size-4" />}>
-                Enviar documentos
-              </BotaoLink>
+            <BotaoLink para="/entrada" icone={<Inbox className="size-4" />}>
+              Enviar documentos
+            </BotaoLink>
             <BotaoLink para="/conferencia" variante="primario" icone={<ScanLine className="size-4" />}>
               Conferir agora
             </BotaoLink>
@@ -62,28 +62,24 @@ export function VisaoGeral() {
 
       {contagens.isError && <Falha erro={contagens.error} tentar={() => contagens.refetch()} />}
 
-      {/* Números do dia: régua contábil */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-y border-ink mb-8">
+      {/* Números do dia */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {(
           [
-            ['A conferir', c?.extraido, 'text-warn', '/conferencia'],
-            ['Na leitura', c ? c.recebido + c.processando : undefined, 'text-info', '/documentos?status=recebido'],
-            ['Conferidos', c?.validado, 'text-ok', '/planilhas'],
-            ['Falhas', c ? c.erro + c.rejeitado : undefined, 'text-err', '/documentos?status=erro'],
+            ['A conferir', c?.extraido, 'text-warn', 'bg-warn', '/conferencia'],
+            ['Na leitura', c ? c.recebido + c.processando : undefined, 'text-info', 'bg-info', '/documentos?status=recebido'],
+            ['Conferidos', c?.validado, 'text-ok', 'bg-ok', '/planilhas'],
+            ['Falhas', c ? c.erro + c.rejeitado : undefined, 'text-err', 'bg-err', '/documentos?status=erro'],
           ] as const
-        ).map(([rotulo, valor, cor, para], i) => (
+        ).map(([rotulo, valor, cor, ponto, para]) => (
           <Link
             key={rotulo}
             to={para}
-            className={clsx(
-              'group px-5 py-5 hover:bg-sheet transition-colors',
-              i > 0 && 'md:border-l border-rule',
-              i % 2 === 1 && 'border-l md:border-l',
-              i >= 2 && 'border-t md:border-t-0',
-            )}
+            className="group px-5 py-4 rounded-[10px] border border-rule bg-paper/40 hover:border-rule-strong hover:bg-sunk/40 transition-colors"
           >
-            <p className="text-xs text-ink-3 flex items-center justify-between">
-              {rotulo}
+            <p className="text-xs text-ink-3 flex items-center gap-2">
+              <span className={clsx('size-1.5 rounded-full', ponto)} />
+              <span className="flex-1">{rotulo}</span>
               <ArrowUpRight className="size-3.5 opacity-0 group-hover:opacity-100 transition" />
             </p>
             <p className={clsx('text-[32px] font-semibold tracking-[-0.03em] leading-none mt-2 tnum', valor ? cor : 'text-ink-3')}>{valor ?? '·'}</p>
@@ -91,7 +87,7 @@ export function VisaoGeral() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <Painel
           titulo="Chegaram por último"
           acoes={

@@ -132,7 +132,7 @@ export function Entrada() {
         descricao="Solte aqui o que chegou por WhatsApp, e-mail ou qualquer outro canal. Um arquivo ou um lote inteiro."
       />
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
         <div className="space-y-4">
           <div
             role="button"

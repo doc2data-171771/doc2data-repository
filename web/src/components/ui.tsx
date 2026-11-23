@@ -177,7 +177,7 @@ export function Confianca({ valor, compacto }: { valor: number | null | undefine
 
 export function Painel({ children, className, titulo, acoes, sub }: { children: ReactNode; className?: string; titulo?: ReactNode; acoes?: ReactNode; sub?: ReactNode }) {
   return (
-    <section className={clsx('bg-sheet border border-rule rounded-[8px]', className)}>
+    <section className={clsx('bg-sheet border border-rule rounded-[10px] shadow-[0_1px_2px_rgb(0_0_0/0.04)] dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.03)]', className)}>
       {(titulo || acoes) && (
         <header className="flex items-center justify-between gap-3 px-4 h-11 border-b border-rule">
           <div className="min-w-0">
@@ -197,7 +197,7 @@ export function Cabecalho({ sobretitulo, titulo, descricao, acoes }: { sobretitu
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 pb-5 border-b border-rule">
       <div className="min-w-0">
         {sobretitulo && <p className="text-[12px] text-ink-3 mb-1">{sobretitulo}</p>}
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{titulo}</h1>
+        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.025em]">{titulo}</h1>
         {descricao && <p className="text-ink-2 text-[13.5px] mt-1.5 max-w-[68ch]">{descricao}</p>}
       </div>
       {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}

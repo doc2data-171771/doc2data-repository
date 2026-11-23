@@ -81,7 +81,7 @@ export function Planilhas() {
 
       {validados.isError && <Falha erro={validados.error} tentar={() => validados.refetch()} />}
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
         <Painel
           titulo="Conferidos e prontos"
           sub={totalValidados ? `${totalValidados} ${totalValidados === 1 ? 'documento' : 'documentos'}` : undefined}

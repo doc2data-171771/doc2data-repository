@@ -39,7 +39,7 @@ export function Login({ modoInicial = 'entrar', aoVoltar }: { modoInicial?: Modo
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-12 bg-paper relative overflow-hidden">
       {/* brilho suave atrás do formulário */}
-      <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full bg-stamp/15 blur-[120px]" />
+      <div aria-hidden className="aurora pointer-events-none absolute -top-64 left-1/2 -translate-x-1/2 w-[1100px] h-[700px] max-w-none rounded-full blur-[110px]" />
 
       {aoVoltar && (
         <button onClick={aoVoltar} className="absolute top-4 left-4 inline-flex items-center gap-1.5 text-[13px] text-ink-3 hover:text-ink px-2 h-8 rounded-[6px] hover:bg-sunk">
