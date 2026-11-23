@@ -102,6 +102,20 @@ export function rotuloCampo(chave: string) {
   return txt.charAt(0).toUpperCase() + txt.slice(1)
 }
 
+const CAMPO_DE_LUGAR = /(^|_)(local|lugar|uf|municipio|cidade|estado|pais|orgao|naturalidade|endereco)(_|$)/
+
+/** Aceita AAAA-MM-DD (com ou sem hora) e DD/MM/AAAA. Devolve null se não for uma data válida. */
+export function lerData(valor: string): Date | null {
+  const v = valor.trim()
+  let a: number, m: number, d: number
+  let r = /^(\d{4})-(\d{2})-(\d{2})/.exec(v)
+  if (r) [a, m, d] = [Number(r[1]), Number(r[2]), Number(r[3])]
+  else if ((r = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v))) [d, m, a] = [Number(r[1]), Number(r[2]), Number(r[3])]
+  else return null
+  const data = new Date(a, m - 1, d)
+  return data.getFullYear() === a && data.getMonth() === m - 1 && data.getDate() === d ? data : null
+}
+
 export type TipoCampo = 'moeda' | 'data' | 'cpf' | 'cnpj' | 'numero' | 'texto' | 'estrutura'
 
 export function tipoDoCampo(chave: string, valor: unknown): TipoCampo {
@@ -115,7 +129,8 @@ export function tipoDoCampo(chave: string, valor: unknown): TipoCampo {
   }
   if (/cnpj/.test(k)) return 'cnpj'
   if (/cpf/.test(k)) return 'cpf'
-  if (/(^|_)(data|vencimento|emissao|nascimento|validade)(_|$)/.test(k)) return 'data'
+  // "local_emissao", "uf_nascimento" etc. falam de um lugar, não de uma data
+  if (/(^|_)(data|vencimento|emissao|nascimento|validade)(_|$)/.test(k) && !CAMPO_DE_LUGAR.test(k)) return 'data'
   if (/(valor|total|preco|saldo|montante|desconto|juros|multa|imposto|iss|icms)/.test(k) && typeof valor !== 'string')
     return 'moeda'
   if (typeof valor === 'number') return 'numero'
@@ -183,8 +198,8 @@ export function alertaDoCampo(chave: string, valor: unknown): string | null {
   if (tipo === 'cpf' && typeof valor === 'string' && !cpfValido(valor)) return 'CPF com dígito verificador inválido'
   if (tipo === 'cnpj' && typeof valor === 'string' && !cnpjValido(valor)) return 'CNPJ com dígito verificador inválido'
   if (tipo === 'data' && typeof valor === 'string') {
-    const d = new Date(valor)
-    if (Number.isNaN(d.getTime())) return 'Data em formato inesperado'
+    const d = lerData(valor)
+    if (!d) return 'Data em formato inesperado'
     const ano = d.getFullYear()
     if (ano < 1900 || ano > new Date().getFullYear() + 15) return 'Data fora do intervalo esperado'
   }

@@ -22,7 +22,17 @@ export function useContagens() {
 export function useCatalogos() {
   const canais = useQuery({ queryKey: ['canais'], queryFn: api.listarCanais, staleTime: 5 * 60_000 })
   const tipos = useQuery({ queryKey: ['tipos'], queryFn: api.listarTipos, staleTime: 5 * 60_000 })
-  return { canais: canais.data ?? [], tipos: tipos.data ?? [] }
+  // Esconde canais repetidos com o mesmo rótulo (ex.: "email" e "E-mail"), mantendo o primeiro ativo
+  const vistos = new Set<string>()
+  const unicos = [...(canais.data ?? [])]
+    .sort((x, y) => Number(y.ativo) - Number(x.ativo))
+    .filter((c) => {
+      const rotulo = nomeCanal(c.nome)
+      if (vistos.has(rotulo)) return false
+      vistos.add(rotulo)
+      return true
+    })
+  return { canais: unicos, tipos: tipos.data ?? [] }
 }
 
 export const NOME_CANAL: Record<string, string> = {
@@ -31,4 +41,8 @@ export const NOME_CANAL: Record<string, string> = {
   whatsapp: 'WhatsApp',
   lote: 'Lote',
 }
-export const nomeCanal = (n?: string | null) => (n ? (NOME_CANAL[n] ?? n) : '—')
+const chaveCanal = (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+const ROTULO_POR_CHAVE: Record<string, string> = Object.fromEntries(
+  Object.entries(NOME_CANAL).map(([k, v]) => [chaveCanal(k), v])
+)
+export const nomeCanal = (n?: string | null) => (n ? (ROTULO_POR_CHAVE[chaveCanal(n)] ?? n) : '—')
