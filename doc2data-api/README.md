@@ -90,6 +90,19 @@ Todas as rotas (exceto `/health` e `/auth/*`) exigem o header `Authorization: Be
 
 Filtros de `GET /documentos`: `status`, `canal_id`, `tipo_documento_id`, `busca` (parte do nome), `page`, `limit`. Para a fila de conferência use `?status=extraido`.
 
+## Extração e conferência automática
+
+- **Campos padronizados** (`src/services/esquemas.js`): o prompt pede o tipo do documento e nomes fixos para o que é comum a todos (`emitente_nome`, `emitente_documento`, `destinatario_nome`, `data_emissao`, `data_vencimento`, `valor_total`, `chave_acesso`, `codigo_barras`, `linha_digitavel`...), além das listas `itens` (produtos ou lançamentos) e `parcelas`. Assim a planilha tem uma coluna por conceito.
+- **Tipo do documento**: se o usuário não escolheu, o tipo identificado pela IA é gravado em `tipos_documento` (criado na hora, se ainda não existir).
+- **Conferência automática** (`src/services/normalizacao.js`), feita depois de cada leitura:
+  - converte linha digitável ↔ código de barras (boleto e contas de consumo), mesmo se a IA trocar os campos;
+  - confere os dígitos verificadores de linha digitável, código de barras, chave de acesso (44 dígitos), CPF e CNPJ (inclusive alfanumérico);
+  - compara a soma dos itens com o total da NF-e/NFC-e.
+
+  Cada problema vira uma frase em `alertas_validacao` (mostrada em vermelho na tela de conferência, e o documento sai da aprovação em lote) e baixa a confiança em 10 pontos.
+- **Planilha XLSX**: colunas comuns primeiro; listas de objetos (`itens`, `parcelas`) vão para abas próprias, com a coluna `arquivo` ligando ao documento. O CSV mantém as listas como JSON.
+- Testes: `npm test` (Node, sem dependências extras).
+
 ## Limitações conhecidas do MVP
 - Arquivos aceitos: PDF, PNG, JPG e WEBP de até 20 MB.
 - A leitura com IA é síncrona (até 60 s na Vercel). Para volumes grandes, o ideal é uma fila em segundo plano. Se o Gemini estiver sobrecarregado, a leitura falha e pode ser refeita.

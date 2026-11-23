@@ -62,6 +62,9 @@ const SIGLAS: Record<string, string> = {
 
 const ACENTOS: Record<string, string> = {
   emissao: 'emissão',
+  destinatario: 'destinatário',
+  alertas: 'alertas',
+  validacao: 'validação',
   numero: 'número',
   razao: 'razão',
   endereco: 'endereço',
@@ -104,6 +107,12 @@ export type TipoCampo = 'moeda' | 'data' | 'cpf' | 'cnpj' | 'numero' | 'texto' |
 export function tipoDoCampo(chave: string, valor: unknown): TipoCampo {
   if (valor !== null && typeof valor === 'object') return 'estrutura'
   const k = chave.toLowerCase()
+  // emitente_documento / destinatario_documento: CPF ou CNPJ conforme a quantidade de dígitos
+  if (/(^|_)documento$/.test(k) && k !== 'numero_documento' && k !== 'tipo_documento' && typeof valor === 'string') {
+    const n = valor.replace(/\D/g, '').length
+    if (n === 14) return 'cnpj'
+    if (n === 11) return 'cpf'
+  }
   if (/cnpj/.test(k)) return 'cnpj'
   if (/cpf/.test(k)) return 'cpf'
   if (/(^|_)(data|vencimento|emissao|nascimento|validade)(_|$)/.test(k)) return 'data'
@@ -183,6 +192,12 @@ export function alertaDoCampo(chave: string, valor: unknown): string | null {
   return null
 }
 
+/** Alertas da conferência automática feita pela API (dígitos verificadores, soma dos itens...). */
+export function alertasDoServidor(dados: Record<string, unknown> | null | undefined): string[] {
+  const v = dados?.alertas_validacao
+  return Array.isArray(v) ? v.filter((a): a is string => typeof a === 'string') : []
+}
+
 /** Primeiro valor monetário plausível de um documento, para somatórios. */
 export function valorPrincipal(dados: Record<string, unknown> | null | undefined): number | null {
   if (!dados) return null
@@ -200,7 +215,7 @@ export function valorPrincipal(dados: Record<string, unknown> | null | undefined
 /** Rótulo curto de quem emitiu / a quem se refere o documento. */
 export function partePrincipal(dados: Record<string, unknown> | null | undefined): string | null {
   if (!dados) return null
-  const chaves = ['razao_social_emitente', 'emitente', 'beneficiario', 'razao_social', 'nome_completo', 'nome', 'pagador', 'banco']
+  const chaves = ['emitente_nome', 'destinatario_nome', 'razao_social_emitente', 'emitente', 'beneficiario', 'razao_social', 'nome_completo', 'nome', 'pagador', 'banco']
   for (const k of chaves) {
     const v = dados[k]
     if (typeof v === 'string' && v.trim()) return v

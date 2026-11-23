@@ -7,7 +7,7 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AlertTriangle, ArrowRight, Check, CheckCheck, Filter } from 'lucide-react'
 import { api, extracaoAtual, type DocumentoDetalhe } from '../lib/api'
-import { alertaDoCampo, exibirValor, fmt, LIMIAR_CONFIANCA, partePrincipal, valorPrincipal } from '../lib/format'
+import { alertaDoCampo, alertasDoServidor, exibirValor, fmt, LIMIAR_CONFIANCA, partePrincipal, valorPrincipal } from '../lib/format'
 import { Botao, BotaoLink, Caixa, Cabecalho, Carregando, Confianca, Falha, Painel, Vazio, mensagemDe, useAvisos } from '../components/ui'
 
 const LIMITE = 50
@@ -30,7 +30,7 @@ function montarLinha(doc: DocumentoDetalhe): Linha {
     confianca: extraido?.confianca ?? null,
     parte: partePrincipal(dados),
     valor: valorPrincipal(dados),
-    alertas: Object.entries(dados).filter(([k, v]) => alertaDoCampo(k, v)).length,
+    alertas: Object.entries(dados).filter(([k, v]) => alertaDoCampo(k, v)).length + alertasDoServidor(dados).length,
     campos: Object.entries(dados),
     extraidoId: extraido?.id ?? null,
   }

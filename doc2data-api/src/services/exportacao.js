@@ -2,7 +2,10 @@ const crypto = require('crypto');
 const config = require('../config');
 const { admin } = require('../supabase');
 const { AppError, throwIfError } = require('../utils/errors');
-const { flatten, buildTable, toCsv } = require('../utils/tabular');
+const { flatten, buildTable, toCsv, separarListas } = require('../utils/tabular');
+const { ORDEM_COLUNAS } = require('./esquemas');
+
+const COLUNAS_FIXAS = ['arquivo', 'tipo_documento', 'canal', 'data_envio', 'validado_em', 'confianca_ia'];
 
 const CONTENT_TYPES = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -60,32 +63,49 @@ async function montarLinhas(documentoIds) {
     const dadosFinais = val?.status === 'corrigido' && val.dados_corrigidos ? val.dados_corrigidos : ext?.dados;
 
     return {
-      arquivo: doc.nome_arquivo,
-      tipo_documento: one(doc.tipos_documento)?.nome ?? '',
-      canal: one(doc.canais)?.nome ?? '',
-      data_envio: doc.data_envio,
-      validado_em: val?.validado_em ?? '',
-      confianca_ia: ext?.confianca ?? '',
-      ...flatten(dadosFinais || {}),
+      meta: {
+        arquivo: doc.nome_arquivo,
+        tipo_documento: one(doc.tipos_documento)?.nome ?? '',
+        canal: one(doc.canais)?.nome ?? '',
+        data_envio: doc.data_envio,
+        validado_em: val?.validado_em ?? '',
+        confianca_ia: ext?.confianca ?? '',
+      },
+      dados: dadosFinais || {},
     };
   });
 }
 
-async function gerarArquivo(formato, linhas) {
-  const { headers, matrix } = buildTable(linhas);
+const PRIORIDADE = [...COLUNAS_FIXAS, ...ORDEM_COLUNAS];
+const linhaPlana = ({ meta, dados }) => ({ ...meta, ...flatten(dados) });
 
-  if (formato === 'csv') return Buffer.from(toCsv(headers, matrix), 'utf8');
-
-  const ExcelJS = require('exceljs');
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Documentos');
+function adicionarAba(wb, nome, headers, matrix) {
+  const ws = wb.addWorksheet(nome);
   ws.addRow(headers);
   matrix.forEach((row) => ws.addRow(row));
   ws.getRow(1).font = { bold: true };
   headers.forEach((h, i) => {
-    ws.getColumn(i + 1).width = Math.min(45, Math.max(14, h.length + 2));
+    ws.getColumn(i + 1).width = Math.min(45, Math.max(12, h.length + 2));
   });
   ws.views = [{ state: 'frozen', ySplit: 1 }];
+}
+
+// CSV: uma linha por documento (listas como JSON). XLSX: listas de objetos vão para abas próprias.
+async function gerarArquivo(formato, registros) {
+  if (formato === 'csv') {
+    const { headers, matrix } = buildTable(registros.map(linhaPlana), PRIORIDADE);
+    return Buffer.from(toCsv(headers, matrix), 'utf8');
+  }
+
+  const { principais, abas } = separarListas(registros);
+  const ExcelJS = require('exceljs');
+  const wb = new ExcelJS.Workbook();
+  const doc = buildTable(principais, PRIORIDADE);
+  adicionarAba(wb, 'Documentos', doc.headers, doc.matrix);
+  for (const [nome, linhas] of Object.entries(abas)) {
+    const t = buildTable(linhas, ['arquivo', 'n']);
+    adicionarAba(wb, nome, t.headers, t.matrix);
+  }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -137,4 +157,4 @@ async function criarExportacao({ formato, documentoIds, usuarioId }) {
   }
 }
 
-module.exports = { criarExportacao, urlDeDownload };
+module.exports = { criarExportacao, urlDeDownload, gerarArquivo };

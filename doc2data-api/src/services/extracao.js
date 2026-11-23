@@ -2,8 +2,26 @@ const config = require('../config');
 const { admin } = require('../supabase');
 const { AppError, throwIfError } = require('../utils/errors');
 const { extrairDocumento } = require('./gemini');
+const { normalizarCampos } = require('./normalizacao');
+const { TIPOS } = require('./esquemas');
 
 const CINCO_MIN = 5 * 60 * 1000;
+
+// Busca (ou cadastra) o tipo em tipos_documento. Falha aqui não derruba a extração.
+async function idDoTipo(codigo) {
+  const nome = TIPOS[codigo];
+  if (!nome) return null;
+  const { data, error } = await admin
+    .from('tipos_documento')
+    .upsert({ nome }, { onConflict: 'nome', ignoreDuplicates: false })
+    .select('id')
+    .single();
+  if (error) {
+    console.error('[extracao] tipo', error.message);
+    return null;
+  }
+  return data.id;
+}
 
 // Fluxo: documento (recebido) -> processando -> extraido (ou erro)
 // Tabelas envolvidas: documentos, processamentos, dados_extraidos
@@ -50,11 +68,21 @@ async function processarDocumento(documento) {
   await admin.from('documentos').update({ status: 'processando' }).eq('id', documento.id);
 
   try {
-    const { campos, confianca } = await extrairDocumento({
+    const bruto = await extrairDocumento({
       buffer,
       mimeType: documento.mime_type,
       tipoDocumento: tipoNome,
     });
+    const { campos, confianca, tipo } = normalizarCampos(
+      { ...bruto.campos, tipo_documento: bruto.tipo ?? bruto.campos.tipo_documento },
+      { confianca: bruto.confianca }
+    );
+
+    // Se o usuário não escolheu o tipo, grava o tipo identificado pela IA
+    if (!documento.tipo_documento_id && tipo) {
+      const tipoId = await idDoTipo(tipo);
+      if (tipoId) await admin.from('documentos').update({ tipo_documento_id: tipoId }).eq('id', documento.id);
+    }
 
     const { data: extraido, error: e3 } = await admin
       .from('dados_extraidos')

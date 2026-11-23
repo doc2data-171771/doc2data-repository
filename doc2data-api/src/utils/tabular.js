@@ -16,10 +16,12 @@ function flatten(obj, prefix = '', out = {}) {
   return out;
 }
 
-// Junta as chaves de todas as linhas (na ordem em que aparecem) e monta a matriz.
-function buildTable(rows) {
-  const headers = [];
-  const seen = new Set();
+// Junta as chaves de todas as linhas e monta a matriz. As colunas de "prioridade" que existirem
+// vêm primeiro, nessa ordem; as demais seguem a ordem em que aparecem.
+function buildTable(rows, prioridade = []) {
+  const presentes = new Set(rows.flatMap((r) => Object.keys(r)));
+  const headers = prioridade.filter((k) => presentes.has(k));
+  const seen = new Set(headers);
   for (const row of rows) {
     for (const key of Object.keys(row)) {
       if (!seen.has(key)) {
@@ -47,4 +49,29 @@ function toCsv(headers, matrix) {
   return '﻿' + lines.join('\r\n');
 }
 
-module.exports = { flatten, buildTable, toCsv };
+const ehListaDeObjetos = (v) => Array.isArray(v) && v.length > 0 && v.every(isPlainObject);
+const nomeAba = (k) => (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' ')).slice(0, 31);
+
+// Para o XLSX: tira as listas de objetos (itens, parcelas...) da linha do documento e
+// devolve uma aba por lista, com uma linha por elemento e a coluna "arquivo" para ligar ao documento.
+// registros: [{ meta: { arquivo, ... }, dados: {...} }]
+function separarListas(registros) {
+  const abas = {};
+  const principais = registros.map(({ meta, dados }) => {
+    const resto = {};
+    for (const [k, v] of Object.entries(dados || {})) {
+      if (!ehListaDeObjetos(v)) {
+        resto[k] = v;
+        continue;
+      }
+      const aba = nomeAba(k);
+      resto[k] = `${v.length} (ver aba ${aba})`;
+      abas[aba] = abas[aba] || [];
+      v.forEach((item, i) => abas[aba].push({ arquivo: meta.arquivo, n: i + 1, ...flatten(item) }));
+    }
+    return { ...meta, ...flatten(resto) };
+  });
+  return { principais, abas };
+}
+
+module.exports = { flatten, buildTable, toCsv, separarListas };

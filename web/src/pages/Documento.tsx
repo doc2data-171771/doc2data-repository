@@ -6,7 +6,7 @@ import { AlertTriangle, ArrowLeft, Check, ChevronLeft, ChevronRight, History, Pl
 import { api, extracaoAtual, type Dados } from '../lib/api'
 import { chaveDe, montarDados, textosIniciais } from '../lib/campos'
 import { nomeCanal, useCatalogos } from '../lib/consultas'
-import { alertaDoCampo, fmt, LIMIAR_CONFIANCA, rotuloCampo, tipoDoCampo } from '../lib/format'
+import { alertaDoCampo, alertasDoServidor, fmt, LIMIAR_CONFIANCA, rotuloCampo, tipoDoCampo } from '../lib/format'
 import { useProcessador } from '../lib/processador'
 import { Botao, Carimbo, Carregando, Confianca, Entrada, Falha, Modal, Rotulo, Seletor, SeloStatus, mensagemDe, useAvisos } from '../components/ui'
 import { Visualizador } from '../components/Visualizador'
@@ -155,6 +155,8 @@ export function Documento() {
     }
   })
   const qtdAlertas = alertas.filter(Boolean).length
+  // Alertas da conferência automática feita pela API (dígitos verificadores, soma dos itens...)
+  const alertasServidor = alertasDoServidor(originais)
 
   return (
     <div className="flex flex-col gap-5">
@@ -287,6 +289,20 @@ export function Documento() {
                       ? `${qtdAlertas} ${qtdAlertas === 1 ? 'campo pede' : 'campos pedem'} atenção. Compare com o original antes de aprovar.`
                       : 'A IA não teve muita certeza nesta leitura. Confira com calma.'}
                   </p>
+                </div>
+              )}
+
+              {editavel && alertasServidor.length > 0 && (
+                <div className="mx-5 mt-3 flex gap-2.5 px-3 py-2.5 rounded-[6px] bg-err-soft text-err text-[13px]">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">A conferência automática encontrou problemas:</p>
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                      {alertasServidor.map((a) => (
+                        <li key={a}>{a}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
 
