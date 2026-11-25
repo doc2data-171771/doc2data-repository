@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { MODO_DEMO } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { Botao, Entrada, Logo, Rotulo, mensagemDe } from '../components/ui'
+import { Botao, Entrada, Modal, Rotulo, mensagemDe } from '../components/ui'
 
 type Modo = 'entrar' | 'criar'
 
-export function Login({ modoInicial = 'entrar', aoVoltar }: { modoInicial?: Modo; aoVoltar?: () => void }) {
+export function Login({ modoInicial = 'entrar', aoFechar }: { modoInicial?: Modo; aoFechar: () => void }) {
   const { entrar, registrar } = useAuth()
   const [modo, setModo] = useState<Modo>(modoInicial)
   const [nome, setNome] = useState('')
@@ -37,25 +37,9 @@ export function Login({ modoInicial = 'entrar', aoVoltar }: { modoInicial?: Modo
   }
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-12 bg-paper relative overflow-hidden">
-      {/* brilho suave atrás do formulário */}
-      <div aria-hidden className="aurora pointer-events-none absolute -top-64 left-1/2 -translate-x-1/2 w-[1100px] h-[700px] max-w-none rounded-full blur-[110px]" />
-
-      {aoVoltar && (
-        <button onClick={aoVoltar} className="absolute top-4 left-4 inline-flex items-center gap-1.5 text-[13px] text-ink-3 hover:text-ink px-2 h-8 rounded-[6px] hover:bg-sunk">
-          <ArrowLeft className="size-4" /> Voltar
-        </button>
-      )}
-
-      <div className="relative w-full max-w-[360px]">
-        <div className="flex justify-center mb-8">
-          <Logo tamanho="lg" />
-        </div>
-
-        <h1 className="text-center text-[20px] font-semibold tracking-[-0.02em]">{criando ? 'Crie sua conta' : 'Entre no doc2data'}</h1>
-        <p className="text-center text-[13.5px] text-ink-3 mt-1.5 mb-7">
-          {criando ? 'Seus documentos ficam só na sua conta.' : 'Bom te ver de novo.'}
-        </p>
+    <Modal aberto aoFechar={aoFechar} titulo={criando ? 'Crie sua conta' : 'Entre no doc2data'}>
+      <div className="mx-auto w-full max-w-[360px]">
+        <p className="text-[13.5px] text-ink-3 mb-5">{criando ? 'Seus documentos ficam só na sua conta.' : 'Bom te ver de novo.'}</p>
 
         <form onSubmit={enviar} className="space-y-4" noValidate>
           {criando && (
@@ -102,6 +86,6 @@ export function Login({ modoInicial = 'entrar', aoVoltar }: { modoInicial?: Modo
 
         {MODO_DEMO && <p className="text-center text-[12px] text-ink-3 mt-6 leading-relaxed">Modo demonstração: qualquer senha funciona e nada é salvo.</p>}
       </div>
-    </div>
+    </Modal>
   )
 }

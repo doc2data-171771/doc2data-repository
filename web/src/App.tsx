@@ -17,10 +17,12 @@ export default function App() {
   const [acesso, setAcesso] = useState<'entrar' | 'criar' | null>(null)
 
   if (!usuario)
-    return acesso ? (
-      <Login modoInicial={acesso} aoVoltar={() => setAcesso(null)} />
-    ) : (
-      <Inicio aoEntrar={() => setAcesso('entrar')} aoCriarConta={() => setAcesso('criar')} />
+    return (
+      <>
+        <Inicio aoEntrar={() => setAcesso('entrar')} aoCriarConta={() => setAcesso('criar')} />
+        {/* desmonta ao fechar, então cada abertura começa com o formulário limpo */}
+        {acesso && <Login modoInicial={acesso} aoFechar={() => setAcesso(null)} />}
+      </>
     )
 
   return (
