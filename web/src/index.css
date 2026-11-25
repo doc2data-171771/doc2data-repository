@@ -29,6 +29,8 @@
   --color-err-soft: var(--err-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-ciano: var(--ciano);
+  --color-rosa: var(--rosa);
 }
 
 :root {
@@ -50,6 +52,9 @@
   --err-soft: #fbe6e6;
   --info: #2f6fd6;
   --info-soft: #e5eefb;
+  /* acentos de destaque da página inicial, vizinhos do índigo */
+  --ciano: #0284c7;
+  --rosa: #db2777;
   color-scheme: light;
 }
 
@@ -72,6 +77,8 @@
   --err-soft: #2e1515;
   --info: #5e9cf5;
   --info-soft: #111f33;
+  --ciano: #38bdf8;
+  --rosa: #f472b6;
   color-scheme: dark;
 }
 
@@ -159,7 +166,34 @@ body {
   background-image: radial-gradient(1100px 280px at 50% -110px, color-mix(in srgb, var(--stamp) 9%, transparent), transparent 70%);
 }
 
+/* Modais (<dialog>) entram subindo e crescendo; o fundo escurece junto */
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fundo-in {
+  from { opacity: 0; }
+}
+dialog[open] {
+  animation: modal-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+dialog[open]::backdrop {
+  animation: fundo-in 220ms ease-out;
+}
+
+/* Pontos que correm ao longo das setas das ilustrações */
+@keyframes correr {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+.correr {
+  animation: correr 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  dialog[open],
+  dialog[open]::backdrop,
+  .correr,
   .stamp-in,
   .aurora,
   .scanline::after {

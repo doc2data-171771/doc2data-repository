@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, ChevronLeft, ChevronRight, FileUp, ScanLine, Sheet, Sparkles } from 'lucide-react'
+import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, FileUp, ScanLine, Sheet, Sparkles } from 'lucide-react'
 import { Botao, Logo } from '../components/ui'
+import { SaibaMais } from './SaibaMais'
 
 const PASSOS = [
   { icone: <FileUp />, titulo: 'Envie', texto: 'PDFs e imagens, um a um ou em lote.' },
@@ -25,11 +26,12 @@ export function Inicio({ aoEntrar, aoCriarConta }: { aoEntrar: () => void; aoCri
 
       <main className="relative flex-1 px-6 sm:px-12">
         <section className="max-w-[960px] mx-auto pt-20 sm:pt-36 pb-20 sm:pb-28 text-center">
-          <p className="inline-flex items-center gap-2 h-8 px-3.5 rounded-full border border-rule-strong bg-sheet/60 backdrop-blur text-[13px] text-ink-2">
-            <Sparkles className="size-3.5 text-stamp" /> Novo: assistente que analisa os seus documentos
+          <p className="inline-flex items-center gap-2 h-8 px-3.5 rounded-full border border-rosa/30 bg-rosa/10 backdrop-blur text-[13px] text-ink-2">
+            <Sparkles className="size-3.5 text-rosa" /> Novo: assistente que analisa os seus documentos
           </p>
           <h1 className="mt-8 text-[44px] sm:text-[72px] lg:text-[84px] leading-[1] font-semibold tracking-[-0.045em] bg-gradient-to-b from-ink to-ink-2 bg-clip-text text-transparent text-balance">
-            Documentos viram dados conferidos.
+            Documentos viram{' '}
+            <span className="bg-gradient-to-r from-ciano via-stamp to-rosa bg-clip-text">dados conferidos.</span>
           </h1>
           <p className="mt-7 text-[17px] sm:text-[20px] text-ink-2 max-w-[54ch] mx-auto leading-relaxed text-pretty">
             Envie notas, boletos e comprovantes. A IA extrai os dados, você confere e depois exporta ou pede uma análise. Cada conta
@@ -41,9 +43,13 @@ export function Inicio({ aoEntrar, aoCriarConta }: { aoEntrar: () => void; aoCri
             </Botao>
             <Botao className="h-11 px-5 text-[14px]" onClick={aoEntrar}>Já tenho conta</Botao>
           </div>
+          <a href="#saiba-mais" className="mt-8 inline-flex items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
+            Saiba como funciona <ArrowDown className="size-4" />
+          </a>
         </section>
 
         <Carrossel />
+        <SaibaMais aoCriarConta={aoCriarConta} />
       </main>
 
       <footer className="relative px-6 sm:px-12 py-6 border-t border-rule text-xs text-ink-3">doc2data · MVP de automação documental</footer>
