@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { MODO_DEMO } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { Botao, Entrada, Modal, Rotulo, mensagemDe } from '../components/ui'
+import { Botao, Entrada, Logo, Modal, Rotulo, mensagemDe } from '../components/ui'
 
 type Modo = 'entrar' | 'criar'
 
@@ -37,9 +37,16 @@ export function Login({ modoInicial = 'entrar', aoFechar }: { modoInicial?: Modo
   }
 
   return (
-    <Modal aberto aoFechar={aoFechar} titulo={criando ? 'Crie sua conta' : 'Entre no doc2data'}>
-      <div className="mx-auto w-full max-w-[360px]">
-        <p className="text-[13.5px] text-ink-3 mb-5">{criando ? 'Seus documentos ficam só na sua conta.' : 'Bom te ver de novo.'}</p>
+    <Modal aberto semCabecalho aoFechar={aoFechar} titulo={criando ? 'Crie sua conta' : 'Entre no doc2data'}>
+      {/* -m-5 anula o padding do Modal para o brilho cobrir a janela inteira */}
+      <div className="relative -m-5 px-5 pt-10 pb-8 overflow-hidden">
+      <div aria-hidden className="aurora pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[720px] h-[480px] max-w-none rounded-full blur-[60px]" />
+      <div className="relative mx-auto w-full max-w-[360px]">
+        <div className="flex justify-center mb-6">
+          <Logo tamanho="lg" />
+        </div>
+        <h1 className="text-center text-[20px] font-semibold tracking-[-0.02em]">{criando ? 'Crie sua conta' : 'Entre no doc2data'}</h1>
+        <p className="text-center text-[13.5px] text-ink-3 mt-1.5 mb-7">{criando ? 'Seus documentos ficam só na sua conta.' : 'Bom te ver de novo.'}</p>
 
         <form onSubmit={enviar} className="space-y-4" noValidate>
           {criando && (
@@ -85,6 +92,7 @@ export function Login({ modoInicial = 'entrar', aoFechar }: { modoInicial?: Modo
         </p>
 
         {MODO_DEMO && <p className="text-center text-[12px] text-ink-3 mt-6 leading-relaxed">Modo demonstração: qualquer senha funciona e nada é salvo.</p>}
+      </div>
       </div>
     </Modal>
   )

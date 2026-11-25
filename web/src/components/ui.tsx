@@ -262,7 +262,7 @@ export function Caixa({ checked, indeterminate, onChange, label }: { checked: bo
 
 // ---------------------------------------------------------------- modal
 
-export function Modal({ aberto, aoFechar, titulo, children, rodape }: { aberto: boolean; aoFechar: () => void; titulo: string; children: ReactNode; rodape?: ReactNode }) {
+export function Modal({ aberto, aoFechar, titulo, children, rodape, semCabecalho }: { aberto: boolean; aoFechar: () => void; titulo: string; children: ReactNode; rodape?: ReactNode; semCabecalho?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -275,14 +275,21 @@ export function Modal({ aberto, aoFechar, titulo, children, rodape }: { aberto: 
       ref={ref}
       onClose={aoFechar}
       onClick={(e) => e.target === ref.current && aoFechar()}
+      aria-label={semCabecalho ? titulo : undefined}
       className="m-auto w-[min(520px,calc(100vw-32px))] rounded-[12px] bg-sheet text-ink border border-rule-strong p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-[2px]"
     >
-      <div className="flex items-center justify-between px-5 h-12 border-b border-rule">
-        <h2 className="text-[15px] font-semibold">{titulo}</h2>
-        <button onClick={aoFechar} className="p-1.5 rounded hover:bg-sunk text-ink-3" aria-label="Fechar">
+      {semCabecalho ? (
+        <button onClick={aoFechar} className="absolute top-3 right-3 z-10 p-1.5 rounded hover:bg-sunk text-ink-3" aria-label="Fechar">
           <X className="size-4" />
         </button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between px-5 h-12 border-b border-rule">
+          <h2 className="text-[15px] font-semibold">{titulo}</h2>
+          <button onClick={aoFechar} className="p-1.5 rounded hover:bg-sunk text-ink-3" aria-label="Fechar">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
       <div className="p-5">{children}</div>
       {rodape && <div className="flex justify-end gap-2 px-5 py-4 border-t border-rule bg-paper/50">{rodape}</div>}
     </dialog>
