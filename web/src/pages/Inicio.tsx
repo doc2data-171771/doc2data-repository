@@ -1,4 +1,5 @@
-import { ArrowRight, FileUp, ScanLine, Sheet, Sparkles } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, ChevronLeft, ChevronRight, FileUp, ScanLine, Sheet, Sparkles } from 'lucide-react'
 import { Botao, Logo } from '../components/ui'
 
 const PASSOS = [
@@ -42,21 +43,83 @@ export function Inicio({ aoEntrar, aoCriarConta }: { aoEntrar: () => void; aoCri
           </div>
         </section>
 
-        <section className="max-w-[1200px] mx-auto grid gap-px bg-rule border border-rule rounded-[14px] overflow-hidden sm:grid-cols-2 lg:grid-cols-4 mb-24">
-          {PASSOS.map((p, i) => (
-            <div key={p.titulo} className="bg-sheet/85 backdrop-blur p-7 sm:p-8">
-              <div className="flex items-center gap-2.5 text-ink-3">
-                <span className="grid place-items-center size-8 rounded-[8px] bg-stamp-soft text-stamp [&>svg]:size-4">{p.icone}</span>
-                <span className="font-mono text-[11px]">0{i + 1}</span>
-              </div>
-              <p className="mt-5 text-[16px] font-medium">{p.titulo}</p>
-              <p className="mt-1.5 text-[14px] text-ink-2 leading-snug">{p.texto}</p>
-            </div>
-          ))}
-        </section>
+        <Carrossel />
       </main>
 
       <footer className="relative px-6 sm:px-12 py-6 border-t border-rule text-xs text-ink-3">doc2data · MVP de automação documental</footer>
     </div>
+  )
+}
+
+/** Os passos em carrossel: setas, bolinhas, deslizar no toque e avanço automático. */
+function Carrossel() {
+  const inicioToque = useRef<number | null>(null)
+  const [atual, setAtual] = useState(0)
+  const [pausado, setPausado] = useState(false)
+
+  const irPara = (i: number) => setAtual((i + PASSOS.length) % PASSOS.length)
+
+  useEffect(() => {
+    if (pausado || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => irPara(atual + 1), 5000)
+    return () => clearInterval(id)
+  }, [atual, pausado])
+
+  return (
+    <section
+      aria-roledescription="carrossel"
+      aria-label="Como funciona"
+      className="max-w-[760px] mx-auto mb-24"
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+      onFocus={() => setPausado(true)}
+      onBlur={() => setPausado(false)}
+    >
+      <div className="relative border border-rule rounded-[14px] overflow-hidden bg-sheet/85 backdrop-blur">
+        <div
+          onPointerDown={(e) => (inicioToque.current = e.clientX)}
+          onPointerUp={(e) => {
+            const dx = e.clientX - (inicioToque.current ?? e.clientX)
+            inicioToque.current = null
+            if (Math.abs(dx) > 40) irPara(atual + (dx < 0 ? 1 : -1))
+          }}
+          style={{ transform: `translateX(-${atual * 100}%)` }}
+          className="flex touch-pan-y transition-transform duration-500 ease-out motion-reduce:transition-none"
+        >
+          {PASSOS.map((p, i) => (
+            <div
+              key={p.titulo}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} de ${PASSOS.length}`}
+              aria-hidden={i !== atual}
+              className="w-full shrink-0 px-8 sm:px-16 py-10 sm:py-12 text-center"
+            >
+              <span className="mx-auto grid place-items-center size-12 rounded-[10px] bg-stamp-soft text-stamp [&>svg]:size-6">{p.icone}</span>
+              <p className="mt-4 font-mono text-[11px] text-ink-3">0{i + 1} / 0{PASSOS.length}</p>
+              <p className="mt-3 text-[22px] sm:text-[26px] font-semibold tracking-[-0.02em]">{p.titulo}</p>
+              <p className="mt-2 text-[15px] sm:text-[16px] text-ink-2 leading-relaxed max-w-[42ch] mx-auto">{p.texto}</p>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => irPara(atual - 1)} aria-label="Passo anterior" className="absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center size-9 rounded-full border border-rule-strong bg-paper/70 text-ink-2 hover:text-ink">
+          <ChevronLeft className="size-4" />
+        </button>
+        <button onClick={() => irPara(atual + 1)} aria-label="Próximo passo" className="absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center size-9 rounded-full border border-rule-strong bg-paper/70 text-ink-2 hover:text-ink">
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+      <div className="mt-5 flex justify-center gap-2">
+        {PASSOS.map((p, i) => (
+          <button
+            key={p.titulo}
+            onClick={() => irPara(i)}
+            aria-label={`Ir para o passo ${i + 1}: ${p.titulo}`}
+            aria-current={i === atual}
+            className={`h-1.5 rounded-full transition-all ${i === atual ? 'w-6 bg-stamp' : 'w-1.5 bg-rule-strong hover:bg-ink-3'}`}
+          />
+        ))}
+      </div>
+    </section>
   )
 }
